@@ -1,8 +1,17 @@
 import sys
+import os
 import random
 import spacy
 import yake
 import psycopg2
+from docx import Document
+from PyPDF2 import PdfReader
+
+
+# -----------------------------
+# CONSTANT TOPIC (DBMS ONLY)
+# -----------------------------
+TOPIC = "DBMS"
 
 
 # -----------------------------
@@ -11,7 +20,7 @@ import psycopg2
 DB_CONFIG = {
     "database": "notequest",
     "user": "postgres",
-    "password": "root",  
+    "password": "root",
     "host": "localhost",
     "port": "5432"
 }
@@ -22,6 +31,34 @@ DB_CONFIG = {
 # -----------------------------
 print("Loading NLP model...")
 nlp = spacy.load("en_core_web_sm")
+
+
+# -----------------------------
+# FILE TEXT EXTRACTION
+# -----------------------------
+def extract_text(file_path):
+    ext = os.path.splitext(file_path)[1].lower()
+
+    if ext == ".txt":
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+
+    elif ext == ".docx":
+        doc = Document(file_path)
+        return "\n".join([para.text for para in doc.paragraphs])
+
+    elif ext == ".pdf":
+        text = ""
+        with open(file_path, "rb") as f:
+            reader = PdfReader(f)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        return text
+
+    else:
+        raise ValueError("Only .txt, .docx, and .pdf files are supported.")
 
 
 # -----------------------------
@@ -40,26 +77,15 @@ def connect_db():
 # -----------------------------
 # INSERT NOTE INTO DATABASE
 # -----------------------------
-def insert_note(conn, topic, content):
+def insert_note(conn, content):
     cursor = conn.cursor()
     cursor.execute(
         "INSERT INTO Notes (topic, content) VALUES (%s, %s)",
-        (topic, content)
+        (TOPIC, content)
     )
     conn.commit()
     cursor.close()
     print("Note inserted into database.")
-
-
-# -----------------------------
-# FETCH NOTES
-# -----------------------------
-def fetch_notes(conn):
-    cursor = conn.cursor()
-    cursor.execute("SELECT topic, content FROM Notes")
-    notes = cursor.fetchall()
-    cursor.close()
-    return notes
 
 
 # -----------------------------
@@ -71,7 +97,7 @@ def preprocess(text):
 
 
 # -----------------------------
-# KEYWORD EXTRACTION (YAKE)
+# KEYWORD EXTRACTION
 # -----------------------------
 def extract_keywords(text):
     kw_extractor = yake.KeywordExtractor(lan="en", n=2, top=30)
@@ -83,7 +109,6 @@ def extract_keywords(text):
 # GENERATE MCQ + RIDDLE
 # -----------------------------
 def generate_mcq(sentence, concept_pool):
-
     doc = nlp(sentence)
     noun_phrases = [chunk.text for chunk in doc.noun_chunks]
 
@@ -103,8 +128,7 @@ def generate_mcq(sentence, concept_pool):
     random.shuffle(options)
 
     riddle_text = f"""
-I am a concept from database theory,
-Hidden inside this technical story:
+I am a DBMS concept hidden inside this sentence:
 "{sentence}"
 Who am I?
 """.strip()
@@ -122,14 +146,14 @@ Who am I?
 # -----------------------------
 # STORE QUESTION
 # -----------------------------
-def store_question(conn, topic, mcq):
+def store_question(conn, mcq):
     cursor = conn.cursor()
 
     cursor.execute("""
         INSERT INTO Questions (topic, riddle_text, options, correct_answer, hint)
         VALUES (%s, %s, %s, %s, %s)
     """, (
-        topic,
+        TOPIC,
         mcq["riddle_text"],
         mcq["options"],
         mcq["correct_answer"],
@@ -141,53 +165,48 @@ def store_question(conn, topic, mcq):
 
 
 # -----------------------------
-# PROCESS NOTES → GENERATE QUESTIONS
+# PROCESS SINGLE FILE
 # -----------------------------
-def process_notes(conn):
-    notes = fetch_notes(conn)
+def process_file(conn, content):
+    sentences = preprocess(content)
+    concept_pool = extract_keywords(content)
 
-    for topic, content in notes:
+    for sentence in sentences:
+        mcq = generate_mcq(sentence, concept_pool)
+        if mcq:
+            store_question(conn, mcq)
 
-        print(f"\nProcessing topic: {topic}")
-
-        sentences = preprocess(content)
-        concept_pool = extract_keywords(content)
-
-        for sentence in sentences:
-            mcq = generate_mcq(sentence, concept_pool)
-
-            if mcq:
-                store_question(conn, topic, mcq)
-
-        print("Questions generated for topic:", topic)
+    print("Questions generated successfully.")
 
 
 # -----------------------------
 # MAIN FUNCTION
 # -----------------------------
 def main():
-
-    if len(sys.argv) != 3:
-        print("Usage: python notequest_nlp_module.py <file_path> <topic>")
+    if len(sys.argv) != 2:
+        print("Usage: python notequest_nlp_module.py <file_path>")
         sys.exit(1)
 
     file_path = sys.argv[1]
-    topic = sys.argv[2]
+
+    if not os.path.exists(file_path):
+        print("File not found.")
+        sys.exit(1)
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
+        content = extract_text(file_path)
+        if not content.strip():
+            raise ValueError("File contains no readable text.")
     except Exception as e:
-        print("Error reading file:", e)
+        print("Error extracting file content:", e)
         sys.exit(1)
 
     conn = connect_db()
-
-    insert_note(conn, topic, content)
-    process_notes(conn)
-
+    insert_note(conn, content)
+    process_file(conn, content)
     conn.close()
-    print("\nAll Done. Questions stored in database.")
+
+    print("\nAll Done. DBMS questions stored in database.")
 
 
 if __name__ == "__main__":
