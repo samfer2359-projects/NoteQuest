@@ -52,10 +52,14 @@ body {
 .game-area {
     width: 500px;
     height: 500px;
-    background-color: rgb(216, 239, 218);
+    background-image: url('Map.jpg'); /* your image name */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     border: 2px solid #333;
     position: relative;
 }
+
 
 /* OBJECTS */
 .player {
@@ -114,3 +118,19 @@ body {
     text-align: center;
     width: 300px;
 }
+
+.level-banner {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 40px;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 8px;
+    z-index: 100;
+}
+
