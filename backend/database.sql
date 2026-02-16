@@ -48,3 +48,6 @@ CREATE INDEX idx_users_username ON Users(username);
 CREATE INDEX idx_questions_topic ON Questions(topic);
 CREATE INDEX idx_progress_user ON Progress(user_id);
 CREATE INDEX idx_progress_question ON Progress(question_id);
+
+ALTER TABLE Questions
+ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
