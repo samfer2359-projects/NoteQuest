@@ -8,15 +8,10 @@ from docx import Document
 from PyPDF2 import PdfReader
 
 
-# -----------------------------
-# CONSTANT TOPIC (DBMS ONLY)
-# -----------------------------
 TOPIC = "DBMS"
 
 
-# -----------------------------
-# DATABASE CONFIGURATION
-# -----------------------------
+
 DB_CONFIG = {
     "database": "notequest",
     "user": "postgres",
@@ -26,16 +21,11 @@ DB_CONFIG = {
 }
 
 
-# -----------------------------
-# LOAD NLP MODEL
-# -----------------------------
+
 print("Loading NLP model...")
 nlp = spacy.load("en_core_web_sm")
 
 
-# -----------------------------
-# FILE TEXT EXTRACTION
-# -----------------------------
 def extract_text(file_path):
     ext = os.path.splitext(file_path)[1].lower()
 
@@ -61,9 +51,7 @@ def extract_text(file_path):
         raise ValueError("Only .txt, .docx, and .pdf files are supported.")
 
 
-# -----------------------------
-# DATABASE CONNECTION
-# -----------------------------
+
 def connect_db():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
@@ -74,9 +62,7 @@ def connect_db():
         sys.exit(1)
 
 
-# -----------------------------
-# INSERT NOTE INTO DATABASE
-# -----------------------------
+
 def insert_note(conn, content):
     cursor = conn.cursor()
     cursor.execute(
@@ -88,26 +74,20 @@ def insert_note(conn, content):
     print("Note inserted into database.")
 
 
-# -----------------------------
-# PREPROCESS TEXT
-# -----------------------------
+
 def preprocess(text):
     doc = nlp(text)
     return [sent.text.strip() for sent in doc.sents if len(sent.text.strip()) > 10]
 
 
-# -----------------------------
-# KEYWORD EXTRACTION
-# -----------------------------
+
 def extract_keywords(text):
     kw_extractor = yake.KeywordExtractor(lan="en", n=2, top=30)
     keywords = kw_extractor.extract_keywords(text)
     return list(set([kw[0] for kw in keywords]))
 
 
-# -----------------------------
-# GENERATE MCQ + RIDDLE
-# -----------------------------
+
 def generate_mcq(sentence, concept_pool):
     doc = nlp(sentence)
     noun_phrases = [chunk.text for chunk in doc.noun_chunks]
@@ -143,9 +123,7 @@ Who am I?
     }
 
 
-# -----------------------------
-# STORE QUESTION
-# -----------------------------
+
 def store_question(conn, mcq):
     cursor = conn.cursor()
 
@@ -164,9 +142,7 @@ def store_question(conn, mcq):
     cursor.close()
 
 
-# -----------------------------
-# PROCESS SINGLE FILE
-# -----------------------------
+
 def process_file(conn, content):
     sentences = preprocess(content)
     concept_pool = extract_keywords(content)
@@ -179,9 +155,6 @@ def process_file(conn, content):
     print("Questions generated successfully.")
 
 
-# -----------------------------
-# MAIN FUNCTION
-# -----------------------------
 def main():
     if len(sys.argv) != 2:
         print("Usage: python notequest_nlp_module.py <file_path>")
