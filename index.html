@@ -27,6 +27,9 @@
                 <div class="player" id="player"></div>
                 <div class="obstacle" style="top:100px; left:100px;"></div>
                 <div class="obstacle" style="top:300px; left:200px;"></div>
+                <div class="level-banner" id="levelBanner">
+                    Level Up!
+                </div>
             </div>
 
         </div>
@@ -57,182 +60,200 @@
         </div>
     </div>
 
-<script>
-let timeLeft = 30;
-let timerInterval;
-let score = 0;
-let quizActive = false;
+    <script>
+        let timeLeft = 30;
+        let timerInterval;
+        let score = 0;
+        let quizActive = false;
 
-const player = document.getElementById("player");
-const gameArea = document.querySelector(".game-area");
+        const player = document.getElementById("player");
+        const gameArea = document.querySelector(".game-area");
 
-let x = 0;
-let y = 0;
-const step = 10;
+        let x = 0;
+        let y = 0;
+        const step = 10;
 
-let level = 1;
-let treasuresRemaining = level;
+        let level = 1;
+        let treasuresRemaining = level;
 
-document.addEventListener("keydown", function (event) {
-    if (quizActive) return;
+        document.addEventListener("keydown", function (event) {
+            if (quizActive) return;
 
-    const gameWidth = gameArea.clientWidth - player.clientWidth;
-    const gameHeight = gameArea.clientHeight - player.clientHeight;
+            const gameWidth = gameArea.clientWidth - player.clientWidth;
+            const gameHeight = gameArea.clientHeight - player.clientHeight;
 
-    let newX = x;
-    let newY = y;
+            let newX = x;
+            let newY = y;
 
-    if (event.key === "ArrowRight") newX = Math.min(x + step, gameWidth);
-    if (event.key === "ArrowLeft") newX = Math.max(x - step, 0);
-    if (event.key === "ArrowDown") newY = Math.min(y + step, gameHeight);
-    if (event.key === "ArrowUp") newY = Math.max(y - step, 0);
+            if (event.key === "ArrowRight") newX = Math.min(x + step, gameWidth);
+            if (event.key === "ArrowLeft") newX = Math.max(x - step, 0);
+            if (event.key === "ArrowDown") newY = Math.min(y + step, gameHeight);
+            if (event.key === "ArrowUp") newY = Math.max(y - step, 0);
 
-    if (!checkObstacleCollision(newX, newY)) {
-        x = newX;
-        y = newY;
-    }
+            if (!checkObstacleCollision(newX, newY)) {
+                x = newX;
+                y = newY;
+            }
 
-    player.style.left = x + "px";
-    player.style.top = y + "px";
+            player.style.left = x + "px";
+            player.style.top = y + "px";
 
-    checkCollision();
-});
+            checkCollision();
+        });
 
-function checkCollision() {
-    const treasures = document.querySelectorAll(".treasure");
+        function checkCollision() {
+            const treasures = document.querySelectorAll(".treasure");
 
-    treasures.forEach(treasure => {
-        const obsX = treasure.offsetLeft;
-        const obsY = treasure.offsetTop;
-        const obsWidth = treasure.offsetWidth;
-        const obsHeight = treasure.offsetHeight;
+            treasures.forEach(treasure => {
+                const obsX = treasure.offsetLeft;
+                const obsY = treasure.offsetTop;
+                const obsWidth = treasure.offsetWidth;
+                const obsHeight = treasure.offsetHeight;
 
-        if (
-            x < obsX + obsWidth &&
-            x + player.offsetWidth > obsX &&
-            y < obsY + obsHeight &&
-            y + player.offsetHeight > obsY
-        ) {
-            treasure.remove();
-            openQuiz();
+                if (
+                    x < obsX + obsWidth &&
+                    x + player.offsetWidth > obsX &&
+                    y < obsY + obsHeight &&
+                    y + player.offsetHeight > obsY
+                ) {
+                    treasure.remove();
+                    openQuiz();
+                }
+            });
         }
-    });
-}
 
-function spawnTreasures(count) {
-    document.querySelectorAll(".treasure").forEach(t => t.remove());
+        function spawnTreasures(count) {
+            document.querySelectorAll(".treasure").forEach(t => t.remove());
 
-    for (let i = 0; i < count; i++) {
-        let newTreasure = document.createElement("div");
-        newTreasure.classList.add("treasure");
+            for (let i = 0; i < count; i++) {
+                let newTreasure = document.createElement("div");
+                newTreasure.classList.add("treasure");
 
-        let validPosition = false;
+                let validPosition = false;
 
-        while (!validPosition) {
-            const maxX = gameArea.clientWidth - 30;
-            const maxY = gameArea.clientHeight - 30;
+                while (!validPosition) {
+                    const maxX = gameArea.clientWidth - 30;
+                    const maxY = gameArea.clientHeight - 30;
 
-            let randomX = Math.floor(Math.random() * maxX);
-            let randomY = Math.floor(Math.random() * maxY);
+                    let randomX = Math.floor(Math.random() * maxX);
+                    let randomY = Math.floor(Math.random() * maxY);
 
-            if (!checkObstacleCollision(randomX, randomY)) {
-                validPosition = true;
-                newTreasure.style.left = randomX + "px";
-                newTreasure.style.top = randomY + "px";
+                    if (!checkObstacleCollision(randomX, randomY)) {
+                        validPosition = true;
+                        newTreasure.style.left = randomX + "px";
+                        newTreasure.style.top = randomY + "px";
+                    }
+                }
+
+                gameArea.appendChild(newTreasure);
             }
         }
 
-        gameArea.appendChild(newTreasure);
-    }
-}
+        function levelUp() {
+            level++;
 
-function levelUp() {
-    level++;
-    document.getElementById("levelDisplay").innerText = "Level: " + level;
-    treasuresRemaining = level;
-    spawnTreasures(level);
-    startTimer();
-}
+            document.getElementById("levelDisplay").innerText = "Level: " + level;
 
-function openQuiz() {
-    quizActive = true;
-    document.getElementById("quizPopup").style.display = "flex";
-}
+            treasuresRemaining = level;
+            spawnTreasures(level);
 
-function closeQuiz() {
-    quizActive = false;
-    document.getElementById("quizPopup").style.display = "none";
+            showLevelBanner(level);
 
-    score += 10;
-    document.getElementById("scoreDisplay").innerText = score;
-
-    treasuresRemaining--;
-
-    if (treasuresRemaining === 0) {
-        levelUp();
-    }
-}
-
-function checkObstacleCollision(newX, newY) {
-    const obstacles = document.querySelectorAll(".obstacle");
-
-    for (let obstacle of obstacles) {
-        const obsX = obstacle.offsetLeft;
-        const obsY = obstacle.offsetTop;
-        const obsWidth = obstacle.offsetWidth;
-        const obsHeight = obstacle.offsetHeight;
-
-        if (
-            newX < obsX + obsWidth &&
-            newX + player.offsetWidth > obsX &&
-            newY < obsY + obsHeight &&
-            newY + player.offsetHeight > obsY
-        ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function startTimer() {
-    clearInterval(timerInterval);
-
-    timeLeft = 30;
-    document.getElementById("timerDisplay").innerText = timeLeft;
-    document.getElementById("timerDisplay").style.color = "black";
-
-    timerInterval = setInterval(function () {
-        timeLeft--;
-        document.getElementById("timerDisplay").innerText = timeLeft;
-
-        if (timeLeft <= 10) {
-            document.getElementById("timerDisplay").style.color = "red";
+            startTimer();
         }
 
-        if (timeLeft <= 0) {
+        function openQuiz() {
+            quizActive = true;
+            document.getElementById("quizPopup").style.display = "flex";
+        }
+
+        function closeQuiz() {
+            quizActive = false;
+            document.getElementById("quizPopup").style.display = "none";
+
+            score += 10;
+            document.getElementById("scoreDisplay").innerText = score;
+
+            treasuresRemaining--;
+
+            if (treasuresRemaining === 0) {
+                levelUp();
+            }
+        }
+
+        function checkObstacleCollision(newX, newY) {
+            const obstacles = document.querySelectorAll(".obstacle");
+
+            for (let obstacle of obstacles) {
+                const obsX = obstacle.offsetLeft;
+                const obsY = obstacle.offsetTop;
+                const obsWidth = obstacle.offsetWidth;
+                const obsHeight = obstacle.offsetHeight;
+
+                if (
+                    newX < obsX + obsWidth &&
+                    newX + player.offsetWidth > obsX &&
+                    newY < obsY + obsHeight &&
+                    newY + player.offsetHeight > obsY
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function startTimer() {
             clearInterval(timerInterval);
-            alert("Time's Up! Restarting Level.");
-            restartLevel();
+
+            timeLeft = 30;
+            document.getElementById("timerDisplay").innerText = timeLeft;
+            document.getElementById("timerDisplay").style.color = "black";
+
+            timerInterval = setInterval(function () {
+                timeLeft--;
+                document.getElementById("timerDisplay").innerText = timeLeft;
+
+                if (timeLeft <= 10) {
+                    document.getElementById("timerDisplay").style.color = "red";
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    alert("Time's Up! Restarting Level.");
+                    restartLevel();
+                }
+
+            }, 1000);
         }
 
-    }, 1000);
-}
+        function showLevelBanner(currentLevel) {
+            const banner = document.getElementById("levelBanner");
 
-function restartLevel() {
-    treasuresRemaining = level;
-    spawnTreasures(level);
+            banner.innerText = "Level " + currentLevel;
+            banner.style.display = "block";
 
-    x = 0;
-    y = 0;
-    player.style.left = "0px";
-    player.style.top = "0px";
+            setTimeout(function () {
+                banner.style.display = "none";
+            }, 1500);
+        }
 
-    startTimer();
-}
+        function restartLevel() {
+            treasuresRemaining = level;
+            spawnTreasures(level);
 
-spawnTreasures(level);
-startTimer();
-</script>
+            x = 0;
+            y = 0;
+            player.style.left = "0px";
+            player.style.top = "0px";
+
+            startTimer();
+        }
+
+        spawnTreasures(level);
+        startTimer();
+    </script>
+
 
 </body>
+
 </html>
