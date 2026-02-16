@@ -1,0 +1,137 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #afe9be;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* LAYOUT */
+.main-layout {
+    display: flex;
+    justify-content: center;
+    align-items: center;   /* center vertically */
+    gap: 40px;
+    margin-top: 40px;      /* pushes layout a bit downward */
+}
+
+
+/* SCORE & TIMER SAME SIZE */
+.score-box,
+.timer-box {
+    width: 180px;
+    height: 150px;
+    background-color: white;
+    color: black;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* GAME */
+.game-container {
+    width: 500px;
+}
+
+.header {
+    color: rgb(228, 219, 208);
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.game-area {
+    width: 500px;
+    height: 500px;
+    background-image: url('Map.jpg'); /* your image name */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 2px solid #333;
+    position: relative;
+}
+
+
+/* OBJECTS */
+.player {
+    width: 30px;
+    height: 30px;
+    background-color: blue;
+    position: absolute;
+}
+
+.treasure {
+    width: 30px;
+    height: 30px;
+    background-color: gold;
+    position: absolute;
+}
+
+.obstacle {
+    width: 50px;
+    height: 50px;
+    background-color: brown;
+    position: absolute;
+}
+
+/* INFO BOX */
+.info-box {
+    width: 180px;
+    height: 250px;   /* or whatever height you chose */
+    background-color: white;
+    color: black;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;      /* horizontal center */
+    justify-content: flex-start;  /* push content to top */
+    padding-top: 20px;        /* spacing from top */
+}
+
+
+/* QUIZ POPUP */
+.quiz-popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    justify-content: center;
+    align-items: center;
+}
+
+.quiz-box {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    width: 300px;
+}
+
+.level-banner {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 40px;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 8px;
+    z-index: 100;
+}
+
+
