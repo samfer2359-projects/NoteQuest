@@ -7,9 +7,11 @@ import spacy
 import yake
 import psycopg2
 from docx import Document
+from PyPDF2 import PdfReader
 import fitz  # PyMuPDF
 import easyocr
 import numpy as np
+
 
 
 TOPIC = "DBMS"
@@ -29,41 +31,41 @@ print("Initializing EasyOCR...")
 ocr_reader = easyocr.Reader(['en'])
 
 
-def clean_text(text):
-    """Remove garbled OCR characters and extra spaces."""
-    text = re.sub(r'\b[A-Z0-9]{1,2}\b', '', text)  # single letters/numbers
-    text = re.sub(r'\s+', ' ', text)               # collapse multiple spaces
-    text = re.sub(r'[^A-Za-z0-9 ,.-]', '', text)  # keep readable chars
-    return text.strip()
-
 
 def extract_text(file_path):
     ext = os.path.splitext(file_path)[1].lower()
-    
+
     if ext == ".txt":
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
-        return clean_text(content)
+        print(f"TXT file: extracted {len(content)} characters")
+        return content
 
     elif ext == ".docx":
         doc = Document(file_path)
         content = "\n".join([para.text for para in doc.paragraphs])
-        return clean_text(content)
+        print(f"DOCX file: extracted {len(content)} characters")
+        return content
 
     elif ext == ".pdf":
         text = ""
-        pdf_doc = fitz.open(file_path)
-        for page_num in range(len(pdf_doc)):
-            page = pdf_doc[page_num]
-            page_text = page.get_text()
-            if page_text.strip():
-                text += clean_text(page_text) + "\n"
-            else:
-                # OCR for scanned page
-                pix = page.get_pixmap()
-                img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
-                ocr_text = " ".join(ocr_reader.readtext(img, detail=0))
-                text += clean_text(ocr_text) + "\n"
+        with open(file_path, "rb") as f:
+            reader = PdfReader(f)
+            for page_num, page in enumerate(reader.pages):
+                page_text = page.extract_text()
+                if page_text and page_text.strip():
+                    print(f"PDF page {page_num + 1}: text extracted via PyPDF2")
+                    text += page_text + "\n"
+                else:
+                    # Scanned or image-based PDF page
+                    print(f"PDF page {page_num + 1}: scanned, running OCR via EasyOCR")
+                    doc = fitz.open(file_path)
+                    page_fitz = doc[page_num]
+                    pix = page_fitz.get_pixmap()
+                    img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+                    ocr_text = "\n".join(ocr_reader.readtext(img, detail=0))
+                    print(f"OCR extracted {len(ocr_text)} characters")
+                    text += ocr_text + "\n"
         return text
 
     else:
@@ -73,7 +75,7 @@ def extract_text(file_path):
 def connect_db():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
-        print("Connected to PostgreSQL.")
+        print("Connected to PostgreSQL database.")
         return conn
     except Exception as e:
         print("Database connection failed:", e)
@@ -91,50 +93,42 @@ def insert_note(conn, content):
 
 def preprocess(text):
     doc = nlp(text)
-    # Only keep sentences with >5 words and >20 characters
-    return [sent.text.strip() for sent in doc.sents if len(sent.text.split()) > 5 and len(sent.text) > 20]
+    return [sent.text.strip() for sent in doc.sents if len(sent.text.strip()) > 10]
 
 def extract_keywords(text):
     kw_extractor = yake.KeywordExtractor(lan="en", n=2, top=30)
     keywords = kw_extractor.extract_keywords(text)
+
     clean_keywords = []
     for kw, _ in keywords:
         kw_clean = kw.strip().translate(str.maketrans('', '', string.punctuation))
         if len(kw_clean) > 3:
             clean_keywords.append(kw_clean)
+
     return list(set(clean_keywords))
 
 
-def replace_with_pronoun(sentence, answer):
-    """Replace answer with 'I' or 'me' depending on grammar."""
-    doc = nlp(sentence)
-    # Match noun chunk first
-    for chunk in doc.noun_chunks:
-        chunk_text = chunk.text.strip().translate(str.maketrans('', '', string.punctuation))
-        if chunk_text.lower() == answer.lower():
-            if chunk.root.dep_ in ("dobj", "pobj"):  # object
-                pronoun = "me"
-            else:
-                pronoun = "I"
-            pattern = re.compile(r'\b' + re.escape(chunk.text.strip()) + r'\b', flags=re.IGNORECASE)
-            return pattern.sub(pronoun, sentence, count=1)
-    # fallback
-    pattern = re.compile(r'\b' + re.escape(answer) + r'\b', flags=re.IGNORECASE)
-    return pattern.sub("I", sentence, count=1)
 
 def generate_mcq(sentence, concept_pool):
     doc = nlp(sentence)
-    noun_phrases = [chunk.text.strip().translate(str.maketrans('', '', string.punctuation))
-                    for chunk in doc.noun_chunks if len(chunk.text.strip()) > 3]
+
+    noun_phrases = [
+        chunk.text.strip().translate(str.maketrans('', '', string.punctuation))
+        for chunk in doc.noun_chunks
+        if len(chunk.text.strip()) > 3
+    ]
+
     if not noun_phrases:
         return None
 
-    # Correct answer
-    correct_answer = next((np for np in noun_phrases if np in concept_pool), None)
+    correct_answer = None
+    for np in noun_phrases:
+        if np in concept_pool:
+            correct_answer = np
+            break
     if not correct_answer:
         correct_answer = noun_phrases[0]
 
-    # Distractors
     distractors = list(set(concept_pool) - {correct_answer})
     if len(distractors) < 3:
         return None
@@ -142,10 +136,10 @@ def generate_mcq(sentence, concept_pool):
     options = distractors + [correct_answer]
     random.shuffle(options)
 
-    # Replace answer with proper pronoun
-    riddle_text = f'"{replace_with_pronoun(sentence, correct_answer)}" Who am I?'
+    # Replace the correct answer in the sentence with "I" (whole word, case-insensitive, only once)
+    pattern = re.compile(r'\b' + re.escape(correct_answer) + r'\b', flags=re.IGNORECASE)
+    riddle_text = f'"{pattern.sub("I", sentence, count=1)}" Who am I?'
 
-    # Hint
     related = [np for np in noun_phrases if np != correct_answer]
     hint_text = related[0] if related else "This is a DBMS concept."
     hint = f"I am related to: {hint_text}"
@@ -158,24 +152,35 @@ def generate_mcq(sentence, concept_pool):
     }
 
 
+
 def store_question(conn, mcq):
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO Questions (topic, riddle_text, options, correct_answer, hint)
         VALUES (%s, %s, %s, %s, %s)
-    """, (TOPIC, mcq["riddle_text"], mcq["options"], mcq["correct_answer"], mcq["hint"]))
+    """, (
+        TOPIC,
+        mcq["riddle_text"],
+        mcq["options"],
+        mcq["correct_answer"],
+        mcq["hint"]
+    ))
     conn.commit()
     cursor.close()
+
 
 
 def process_file(conn, content):
     sentences = preprocess(content)
     concept_pool = extract_keywords(content)
+
     for sentence in sentences:
         mcq = generate_mcq(sentence, concept_pool)
         if mcq:
             store_question(conn, mcq)
+
     print("Questions generated successfully.")
+
 
 def main():
     if len(sys.argv) != 2:
@@ -183,6 +188,7 @@ def main():
         sys.exit(1)
 
     file_path = sys.argv[1]
+
     if not os.path.exists(file_path):
         print("File not found.")
         sys.exit(1)
@@ -199,7 +205,8 @@ def main():
     insert_note(conn, content)
     process_file(conn, content)
     conn.close()
-    print("\nAll Done. DBMS questions stored.")
+
+    print("\nAll Done. DBMS questions stored in database.")
 
 if __name__ == "__main__":
     main()
