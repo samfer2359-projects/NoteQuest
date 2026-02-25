@@ -1,16 +1,13 @@
 import sys
 import os
-import random
-import string
 import re
 import spacy
 import yake
 import psycopg2
 from docx import Document
-import fitz  # PyMuPDF
+import fitz
 import easyocr
 import numpy as np
-
 
 TOPIC = "DBMS"
 
@@ -29,21 +26,22 @@ print("Initializing EasyOCR...")
 ocr_reader = easyocr.Reader(['en'])
 
 
+
+
 def clean_text(text):
-    """Remove garbled OCR characters and extra spaces."""
-    text = re.sub(r'\b[A-Z0-9]{1,2}\b', '', text)  # single letters/numbers
-    text = re.sub(r'\s+', ' ', text)               # collapse multiple spaces
-    text = re.sub(r'[^A-Za-z0-9 ,.-]', '', text)  # keep readable chars
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'[^A-Za-z0-9 ,.-]', '', text)
     return text.strip()
+
+
 
 
 def extract_text(file_path):
     ext = os.path.splitext(file_path)[1].lower()
-    
+
     if ext == ".txt":
         with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        return clean_text(content)
+            return clean_text(f.read())
 
     elif ext == ".docx":
         doc = Document(file_path)
@@ -53,31 +51,32 @@ def extract_text(file_path):
     elif ext == ".pdf":
         text = ""
         pdf_doc = fitz.open(file_path)
-        for page_num in range(len(pdf_doc)):
-            page = pdf_doc[page_num]
+
+        for page in pdf_doc:
             page_text = page.get_text()
+
             if page_text.strip():
                 text += clean_text(page_text) + "\n"
             else:
-                # OCR for scanned page
                 pix = page.get_pixmap()
-                img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+                img = np.frombuffer(
+                    pix.samples, dtype=np.uint8
+                ).reshape(pix.height, pix.width, pix.n)
+
                 ocr_text = " ".join(ocr_reader.readtext(img, detail=0))
                 text += clean_text(ocr_text) + "\n"
+
         return text
 
     else:
-        raise ValueError("Only .txt, .docx, and .pdf files are supported.")
+        raise ValueError("Only .txt, .docx, .pdf supported")
+
+
 
 
 def connect_db():
-    try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        print("Connected to PostgreSQL.")
-        return conn
-    except Exception as e:
-        print("Database connection failed:", e)
-        sys.exit(1)
+    return psycopg2.connect(**DB_CONFIG)
+
 
 def insert_note(conn, content):
     cursor = conn.cursor()
@@ -87,119 +86,66 @@ def insert_note(conn, content):
     )
     conn.commit()
     cursor.close()
-    print("Note inserted into database.")
-
-def preprocess(text):
-    doc = nlp(text)
-    # Only keep sentences with >5 words and >20 characters
-    return [sent.text.strip() for sent in doc.sents if len(sent.text.split()) > 5 and len(sent.text) > 20]
-
-def extract_keywords(text):
-    kw_extractor = yake.KeywordExtractor(lan="en", n=2, top=30)
-    keywords = kw_extractor.extract_keywords(text)
-    clean_keywords = []
-    for kw, _ in keywords:
-        kw_clean = kw.strip().translate(str.maketrans('', '', string.punctuation))
-        if len(kw_clean) > 3:
-            clean_keywords.append(kw_clean)
-    return list(set(clean_keywords))
 
 
-def replace_with_pronoun(sentence, answer):
-    """Replace answer with 'I' or 'me' depending on grammar."""
-    doc = nlp(sentence)
-    # Match noun chunk first
-    for chunk in doc.noun_chunks:
-        chunk_text = chunk.text.strip().translate(str.maketrans('', '', string.punctuation))
-        if chunk_text.lower() == answer.lower():
-            if chunk.root.dep_ in ("dobj", "pobj"):  # object
-                pronoun = "me"
-            else:
-                pronoun = "I"
-            pattern = re.compile(r'\b' + re.escape(chunk.text.strip()) + r'\b', flags=re.IGNORECASE)
-            return pattern.sub(pronoun, sentence, count=1)
-    # fallback
-    pattern = re.compile(r'\b' + re.escape(answer) + r'\b', flags=re.IGNORECASE)
-    return pattern.sub("I", sentence, count=1)
-
-def generate_mcq(sentence, concept_pool):
-    doc = nlp(sentence)
-    noun_phrases = [chunk.text.strip().translate(str.maketrans('', '', string.punctuation))
-                    for chunk in doc.noun_chunks if len(chunk.text.strip()) > 3]
-    if not noun_phrases:
-        return None
-
-    # Correct answer
-    correct_answer = next((np for np in noun_phrases if np in concept_pool), None)
-    if not correct_answer:
-        correct_answer = noun_phrases[0]
-
-    # Distractors
-    distractors = list(set(concept_pool) - {correct_answer})
-    if len(distractors) < 3:
-        return None
-    distractors = random.sample(distractors, 3)
-    options = distractors + [correct_answer]
-    random.shuffle(options)
-
-    # Replace answer with proper pronoun
-    riddle_text = f'"{replace_with_pronoun(sentence, correct_answer)}" Who am I?'
-
-    # Hint
-    related = [np for np in noun_phrases if np != correct_answer]
-    hint_text = related[0] if related else "This is a DBMS concept."
-    hint = f"I am related to: {hint_text}"
-
-    return {
-        "riddle_text": riddle_text,
-        "options": options,
-        "correct_answer": correct_answer,
-        "hint": hint
-    }
-
-
-def store_question(conn, mcq):
+def store_concepts(conn, concepts):
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO Questions (topic, riddle_text, options, correct_answer, hint)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (TOPIC, mcq["riddle_text"], mcq["options"], mcq["correct_answer"], mcq["hint"]))
+
+    for concept in concepts:
+        cursor.execute(
+            "INSERT INTO Concepts (topic, concept_text) VALUES (%s, %s)",
+            (TOPIC, concept)
+        )
+
     conn.commit()
     cursor.close()
 
 
-def process_file(conn, content):
-    sentences = preprocess(content)
-    concept_pool = extract_keywords(content)
-    for sentence in sentences:
-        mcq = generate_mcq(sentence, concept_pool)
-        if mcq:
-            store_question(conn, mcq)
-    print("Questions generated successfully.")
+#CONCEPT EXTRACTION 
+
+def extract_keywords(text):
+    kw_extractor = yake.KeywordExtractor(lan="en", n=2, top=50)
+    keywords = kw_extractor.extract_keywords(text)
+
+    clean_keywords = []
+    for kw, _ in keywords:
+        kw = kw.strip()
+        if len(kw) > 3:
+            clean_keywords.append(kw)
+
+    return list(set(clean_keywords))
+
+
+
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python module.py <file_path>")
+        print("Usage: python m2.py <file_path>")
         sys.exit(1)
 
     file_path = sys.argv[1]
+
     if not os.path.exists(file_path):
         print("File not found.")
         sys.exit(1)
 
-    try:
-        content = extract_text(file_path)
-        if not content.strip():
-            raise ValueError("File contains no readable text.")
-    except Exception as e:
-        print("Error extracting file content:", e)
+    content = extract_text(file_path)
+
+    if not content.strip():
+        print("No readable text found.")
         sys.exit(1)
 
     conn = connect_db()
+
     insert_note(conn, content)
-    process_file(conn, content)
+
+    concepts = extract_keywords(content)
+    store_concepts(conn, concepts)
+
     conn.close()
-    print("\nAll Done. DBMS questions stored.")
+
+    print("Concepts extracted and stored successfully.")
+
 
 if __name__ == "__main__":
     main()

@@ -51,3 +51,12 @@ CREATE INDEX idx_progress_question ON Progress(question_id);
 
 ALTER TABLE Questions
 ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
+
+ALTER TABLE Questions
+ADD COLUMN difficulty INT DEFAULT 1;
+
+CREATE TABLE Concepts (
+    concept_id SERIAL PRIMARY KEY,
+    topic VARCHAR(100),
+    concept_text TEXT
+);
