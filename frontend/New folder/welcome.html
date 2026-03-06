@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>NoteQuest - Welcome</title>
+
+<!-- Google Font for playful headings -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+
+/* ===============================
+   GLOBAL STYLES
+================================ */
+
+body{
+    margin:0;
+    font-family:'Nunito', sans-serif;
+    background:#b4e7b1;
+    color:#2c3e2f;
+    text-align:center;
+
+    /* subtle pattern effect */
+    background-image: radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px);
+    background-size:40px 40px;
+}
+
+/* ===============================
+   HEADER
+================================ */
+
+header{
+    padding:40px 20px;
+}
+
+h1{
+    font-family:'Fredoka One', cursive;
+    font-size:48px;
+    color:#2b5d34;
+    margin-bottom:10px;
+}
+
+.tagline{
+    font-size:18px;
+    color:#3f5f45;
+}
+
+/* ===============================
+   TREASURE IMAGE
+================================ */
+
+.treasure-image{
+    margin-top:30px;
+}
+
+/* Replace image with your own treasure map or chest image */
+.treasure-image img{
+    width:220px;
+}
+
+/* ===============================
+   BUTTON
+================================ */
+
+.start-btn{
+    margin-top:35px;
+}
+
+.start-btn a{
+    text-decoration:none;
+}
+
+button{
+    background:#f4c542;
+    border:none;
+    padding:18px 40px;
+    font-size:20px;
+    font-weight:bold;
+    border-radius:10px;
+    cursor:pointer;
+    box-shadow:0px 4px 0px #c89e1f;
+    transition:0.2s;
+}
+
+button:hover{
+    background:#ffd95e;
+    transform:translateY(-2px);
+}
+
+/* ===============================
+   HOW TO PLAY
+================================ */
+
+.howto{
+    margin-top:50px;
+    max-width:600px;
+    margin-left:auto;
+    margin-right:auto;
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0px 3px 8px rgba(0,0,0,0.15);
+}
+
+.howto h3{
+    font-family:'Fredoka One';
+    color:#2b5d34;
+}
+
+/* ===============================
+   FOOTER
+================================ */
+
+footer{
+    margin-top:60px;
+    padding:10px;
+    font-size:14px;
+    color:#45664b;
+}   
+
+.image{
+    transform: scale(1.4);
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float{
+    0%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+    100%{transform:translateY(0);}
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+<h1>NoteQuest — DBMS Treasure Hunt</h1>
+
+<p class="tagline">
+Learn Database Concepts while exploring a treasure map!
+</p>
+
+</header>
+
+<!-- Treasure Image -->
+<!-- Replace this placeholder image with your own treasure chest or map image -->
+<div class="treasure-image">
+
+<img src="treasure.png" alt="Treasure Chest" class="image">
+
+</div>
+
+<!-- Start Adventure Button -->
+<div class="start-btn">
+
+<a href="dashboard.html">
+<button>Start Adventure</button>
+</a>
+
+</div>
+
+<!-- How to Play -->
+<section class="howto">
+
+<h3>How to Play</h3>
+
+<p>
+Explore the treasure map and solve DBMS riddles to unlock new levels.  
+Upload your notes to receive quiz challenges.  
+Earn points and discover hidden database treasures!
+</p>
+
+</section>
+
+<footer>
+
+© 2026 NoteQuest Educational Game
+
+</footer>
+
+</body>
+</html>
