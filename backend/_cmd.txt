@@ -1,5 +1,8 @@
 python backend\m2.py notes\dbms_notes.txt
 
+python backend\m2.py notes\dbms2.txt
+
+
 ollama run mistral
 
 /bye
