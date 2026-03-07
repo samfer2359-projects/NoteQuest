@@ -54,9 +54,18 @@
     <!-- QUIZ POPUP -->
     <div class="quiz-popup" id="quizPopup">
         <div class="quiz-box">
+
             <h3>Treasure Quiz</h3>
-            <p>This is a sample question?</p>
-            <button onclick="closeQuiz()">Submit</button>
+
+            <p>Which language is used to style web pages?</p>
+            <p id="hintText" style="color:red; display:none;">
+                Hint: It is used to design the look of web pages.
+            </p>
+            <button onclick="checkAnswer(true)">CSS</button>
+            <button onclick="checkAnswer(false)">HTML</button>
+            <button onclick="checkAnswer(false)">Python</button>
+            <button onclick="checkAnswer(false)">Java</button>
+
         </div>
     </div>
 
@@ -65,6 +74,7 @@
         let timerInterval;
         let score = 0;
         let quizActive = false;
+        let attempts = 0;
 
         const player = document.getElementById("player");
         const gameArea = document.querySelector(".game-area");
@@ -74,7 +84,7 @@
         const step = 10;
 
         let level = 1;
-        let treasuresRemaining = level;
+        let treasuresRemaining = 1;
 
         document.addEventListener("keydown", function (event) {
             if (quizActive) return;
@@ -154,7 +164,7 @@
 
             document.getElementById("levelDisplay").innerText = "Level: " + level;
 
-            treasuresRemaining = level;
+            treasuresRemaining = 1;
             spawnTreasures(1);
 
             showLevelBanner(level);
@@ -165,6 +175,8 @@
         function openQuiz() {
             quizActive = true;
             document.getElementById("quizPopup").style.display = "flex";
+
+            document.getElementById("hintText").style.display = "none";
         }
 
         function closeQuiz() {
@@ -178,6 +190,50 @@
 
             if (treasuresRemaining === 0) {
                 levelUp();
+            }
+        }
+
+        function checkAnswer(correct) {
+
+            if (correct) {
+
+                score += 10;
+                alert("Correct Answer!");
+
+                document.getElementById("scoreDisplay").innerText = score;
+
+                quizActive = false;
+                document.getElementById("quizPopup").style.display = "none";
+
+                attempts = 0;   // reset attempts
+
+                treasuresRemaining--;
+
+                if (treasuresRemaining === 0) {
+                    levelUp();
+                }
+
+            } else {
+
+                attempts++;
+
+                if (attempts === 1) {
+
+                    alert("Wrong Answer! Here's a hint.");
+                    document.getElementById("hintText").style.display = "block";
+
+                } else {
+
+                    alert("Wrong again! Restarting level.");
+                    document.getElementById("quizPopup").style.display = "none";
+
+                    attempts = 0;
+                    quizActive = false;
+
+                    restartLevel();
+
+                }
+
             }
         }
 
@@ -219,8 +275,7 @@
 
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
-                    alert("Time's Up! Restarting Level.");
-                    restartLevel();
+                    alert("Hint: CSS is used to style web pages!");
                 }
 
             }, 1000);
@@ -238,8 +293,8 @@
         }
 
         function restartLevel() {
-            treasuresRemaining = level;
-            spawnTreasures(level);
+            treasuresRemaining = 1;
+            spawnTreasures(1);
 
             x = 0;
             y = 0;
@@ -249,7 +304,7 @@
             startTimer();
         }
 
-        spawnTreasures(level);
+        spawnTreasures(1);
         startTimer();
     </script>
 
