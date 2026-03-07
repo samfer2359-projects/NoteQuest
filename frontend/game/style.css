@@ -10,10 +10,10 @@ body {
 /* LAYOUT */
 .main-layout {
     display: flex;
-    justify-content: center;
-    align-items: center;   /* center vertically */
-    gap: 40px;
-    margin-top: 40px;      /* pushes layout a bit downward */
+    justify-content: space-between;   /* pushes items to extreme sides */
+    align-items: center;
+    gap: 15px;                        /* very small space between boxes */
+    width: 95vw;                      /* almost full screen width */
 }
 
 
@@ -40,18 +40,20 @@ body {
 
 /* GAME */
 .game-container {
-    width: 500px;
+    flex: 1;          /* fills remaining space */
+    margin: 0 10px;   /* tiny spacing from side boxes */
 }
 
 .header {
-    color: rgb(228, 219, 208);
+    color: rgb(74, 92, 226);
     margin-bottom: 10px;
     font-weight: bold;
 }
 
 .game-area {
-    width: 500px;
-    height: 500px;
+
+    width: 100%;
+    height: 600px;
     background-image: url('Map.jpg'); /* your image name */
     background-size: cover;
     background-position: center;
@@ -63,23 +65,31 @@ body {
 
 /* OBJECTS */
 .player {
-    width: 30px;
-    height: 30px;
-    background-color: blue;
+    width: 45px;
+    height: 45px;
+    background-image: url("player.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     position: absolute;
 }
 
 .treasure {
-    width: 30px;
-    height: 30px;
-    background-color: gold;
+    width: 45px;
+    height: 45px;
+    background-image: url("treasure.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     position: absolute;
 }
-
 .obstacle {
-    width: 50px;
-    height: 50px;
-    background-color: brown;
+    width: 80px;
+    height: 80px;
+    background-image: url("tree1.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     position: absolute;
 }
 
@@ -133,5 +143,3 @@ body {
     border-radius: 8px;
     z-index: 100;
 }
-
-
