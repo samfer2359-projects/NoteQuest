@@ -26,14 +26,14 @@ print("Initializing EasyOCR...")
 ocr_reader = easyocr.Reader(['en'])
 
 
-
+# ------------------------
+# Helper Functions
+# ------------------------
 
 def clean_text(text):
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'[^A-Za-z0-9 ,.-]', '', text)
     return text.strip()
-
-
 
 
 def extract_text(file_path):
@@ -72,8 +72,6 @@ def extract_text(file_path):
         raise ValueError("Only .txt, .docx, .pdf supported")
 
 
-
-
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
@@ -88,20 +86,18 @@ def insert_note(conn, content):
     cursor.close()
 
 
-def store_concepts(conn, concepts):
+def store_concepts(conn, concepts, user_id):
     cursor = conn.cursor()
 
     for concept in concepts:
         cursor.execute(
-            "INSERT INTO Concepts (topic, concept_text) VALUES (%s, %s)",
-            (TOPIC, concept)
+            "INSERT INTO Concepts (topic, concept_text, user_id) VALUES (%s, %s, %s)",
+            (TOPIC, concept, user_id)
         )
 
     conn.commit()
     cursor.close()
 
-
-#CONCEPT EXTRACTION 
 
 def extract_keywords(text):
     kw_extractor = yake.KeywordExtractor(lan="en", n=2, top=50)
@@ -116,14 +112,17 @@ def extract_keywords(text):
     return list(set(clean_keywords))
 
 
-
+# ------------------------
+# Main Function
+# ------------------------
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python m2.py <file_path>")
+    if len(sys.argv) != 3:
+        print("Usage: python m2.py <file_path> <user_id>")
         sys.exit(1)
 
     file_path = sys.argv[1]
+    user_id = int(sys.argv[2])
 
     if not os.path.exists(file_path):
         print("File not found.")
@@ -140,12 +139,16 @@ def main():
     insert_note(conn, content)
 
     concepts = extract_keywords(content)
-    store_concepts(conn, concepts)
+    store_concepts(conn, concepts, user_id)
 
     conn.close()
 
     print("Concepts extracted and stored successfully.")
 
+
+# ------------------------
+# Run Script
+# ------------------------
 
 if __name__ == "__main__":
     main()

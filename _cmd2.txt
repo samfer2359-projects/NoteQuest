@@ -1,0 +1,7 @@
+ollama run mistral
+
+/bye 
+
+python app.py
+
+http://localhost:8000

@@ -60,3 +60,31 @@ CREATE TABLE Concepts (
     topic VARCHAR(100),
     concept_text TEXT
 );
+
+ALTER TABLE Users
+ADD CONSTRAINT unique_username UNIQUE(username);
+
+ALTER TABLE Concepts
+ADD COLUMN user_id INT REFERENCES Users(user_id) ON DELETE CASCADE;
+
+CREATE TABLE IF NOT EXISTS UserQuestionProgress (
+    user_id INT,
+    question_id INT,
+    level INT,
+    PRIMARY KEY(user_id, question_id)
+);
+
+ALTER TABLE UserQuestionProgress
+ADD CONSTRAINT fk_uqp_user
+FOREIGN KEY (user_id)
+REFERENCES Users(user_id)
+ON DELETE CASCADE;
+
+ALTER TABLE UserQuestionProgress
+ADD CONSTRAINT fk_uqp_question
+FOREIGN KEY (question_id)
+REFERENCES Questions(question_id)
+ON DELETE CASCADE;
+
+ALTER TABLE Questions
+ADD CONSTRAINT unique_question_text UNIQUE (riddle_text, topic);

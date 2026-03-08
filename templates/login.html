@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login - NoteQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+
+
+<style>
+.flash {
+  padding: 10px 20px;
+  margin: 10px auto;
+  width: fit-content;
+  border-radius: 8px;
+  font-weight: bold;
+}
+.flash.error { background-color: #f8d7da; color: #721c24; }
+.flash.success { background-color: #d4edda; color: #155724; }
+</style>
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-messages">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="cursor"></div>
+<div class="stars"></div>
+
+<form method="POST" action="/login">
+
+<div class="card">
+
+<h2 class="logo">⚡ LOGIN</h2>
+
+<div class="input-group">
+<input type="email" name="email" required>
+<label>Email</label>
+</div>
+
+<div class="input-group">
+<input type="password" name="password" required>
+<label>Password</label>
+</div>
+
+<button type="submit" class="auth-btn">
+ENTER QUEST
+</button>
+
+</div>
+
+</form>
+
+<script src="script.js"></script>
+</body>
+</html>
