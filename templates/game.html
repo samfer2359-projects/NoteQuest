@@ -3,6 +3,7 @@
 <head>
     <title>2D Treasure Hunt</title>
     <link rel="stylesheet" href="/static/css/gstyle.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
@@ -46,6 +47,29 @@
         <button></button>
         <button></button>
     </div>
+</div>
+
+<div id="gameOverCard" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:white;
+z-index:2000;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+text-align:center;
+">
+
+<h1>🎉 Treasure Completed!</h1>
+
+<h2 id="finalScore"></h2>
+
+<p>Press ENTER to return to dashboard</p>
+
 </div>
 
 <script>
@@ -155,14 +179,42 @@ function showLevelBanner(lvl){
 
 // Level up
 async function levelUp(){
-    if(level>=10){ alert("🎉 You completed all levels!"); return; }
+
+    if(level >= 10){
+        showGameOver();
+        return;
+    }
+
     level++;
+
     document.getElementById("levelDisplay").innerText="Level: "+level;
+
     treasuresRemaining=1;
+
     spawnTreasures(treasuresRemaining);
+
     showLevelBanner(level);
+
     startTimer();
+
     spawnObstacles(level);
+
+    updateProgress();
+}
+
+function updateProgress(){
+
+fetch("/update-progress",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+user_id: USER_ID,
+level: level,
+score: score
+})
+})
 }
 
 // Restart level
@@ -171,6 +223,25 @@ function restartLevel(){
     spawnTreasures(treasuresRemaining);
     x=y=0; player.style.left="0px"; player.style.top="0px";
     startTimer();
+}
+
+function showGameOver(){
+
+document.getElementById("gameOverCard").style.display="flex";
+
+document.getElementById("finalScore").innerText="Final Score: "+score;
+
+confetti({
+particleCount:200,
+spread:120,
+origin:{y:0.6}
+});
+
+document.addEventListener("keydown", function(e){
+if(e.key==="Enter"){
+window.location.href="/dashboard";
+}
+});
 }
 
 // Quiz popup (fetch asynchronously)
@@ -206,7 +277,9 @@ function checkAnswer(correct){
         attempts=0;
     } else {
         attempts++;
-        if(attempts===1){ alert("Wrong! Here's a hint."); document.getElementById("hintText").style.display="block"; }
+        if(attempts===1){ alert("Wrong! Here's a hint."); const hint = document.getElementById("hintText");
+hint.style.display="block";
+hint.style.color="red"; }
         else{ alert("Wrong again! Restarting level."); quizActive=false; attempts=0; document.getElementById("quizPopup").style.display="none"; restartLevel(); }
     }
 }

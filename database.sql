@@ -88,3 +88,9 @@ ON DELETE CASCADE;
 
 ALTER TABLE Questions
 ADD CONSTRAINT unique_question_text UNIQUE (riddle_text, topic);
+
+ALTER TABLE Questions
+DROP COLUMN options;
+
+ALTER TABLE Questions
+ADD COLUMN options JSONB;

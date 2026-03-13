@@ -23,6 +23,18 @@ DB_CONFIG = {
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
+def user_has_notes(user_id):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT 1 FROM Concepts WHERE user_id=%s LIMIT 1",
+        (user_id,)
+    )
+    exists = cursor.fetchone() is not None
+    cursor.close()
+    conn.close()
+    return exists
+
 # Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -171,6 +183,10 @@ def game():
         flash("You need to log in to play the game.", "error")
         return redirect(url_for('login'))
 
+    if not user_has_notes(session['user_id']):
+        flash("Upload notes first to generate quiz questions!", "error")
+        return redirect(url_for('dashboard'))
+
     return render_template("game.html")
 
 @app.route("/logout")
@@ -216,7 +232,7 @@ def upload_file():
 
         # Pre-generate questions
         from question_generator import fetch_question
-        total_levels = 10
+        total_levels = 3
         failed_levels = []
 
         for lvl in range(1, total_levels + 1):
@@ -251,7 +267,7 @@ def get_question():
         from question_generator import fetch_question
         question = fetch_question(level, user_id)
 
-        return jsonify({"success": True, "level": level, "question": question})
+        return jsonify(question)
     except Exception as e:
         # Always return JSON on error
         return jsonify({"success": False, "error": str(e)}), 200
