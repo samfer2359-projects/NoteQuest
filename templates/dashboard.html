@@ -1,138 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
 
-<title>NoteQuest Dashboard</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static',filename='css/theme.css') }}">
 
 <style>
 
-/* ===============================
-   GLOBAL
-================================ */
-
-body{
-    margin:0;
-    font-family:'Nunito',sans-serif;
-    background:#b4e7b1;
-    color:#2c3e2f;
-
-    background-image: radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px);
-    background-size:40px 40px;
-}
-
-/* ===============================
-   HEADER
-================================ */
-
-header{
-    text-align:center;
-    padding:25px;
-}
-
-header h1{
-    font-family:'Fredoka One';
-    color:#2b5d34;
-}
-
-/* ===============================
-   LAYOUT
-================================ */
-
 .container{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:30px;
-    padding:20px;
-    flex-wrap:wrap;
+max-width:1200px;
+padding:40px;
+width:100%;
+margin:0 auto;  /* centers dashboard */
 }
 
-/* ===============================
-   PANELS
-================================ */
-
-.panel{
-    background:white;
-    padding:20px;
-    border-radius:12px;
-    width:260px;
-    box-shadow:0px 4px 10px rgba(0,0,0,0.15);
+.stats{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px;
+margin-top:30px;
 }
 
-/* ===============================
-   TREASURE MAP CENTER
-================================ */
-
-.map{
-    text-align:center;
-}
-
-/* Replace image with treasure map graphic */
-.map img{
-    width:260px;
-}
-
-/* ===============================
-   PROGRESS BAR
-================================ */
-
-.progress-bar{
-    width:100%;
-    height:20px;
-    background:#ddd;
-    border-radius:10px;
-    overflow:hidden;
-    margin-top:10px;
-}
-
-.progress{
-    height:100%;
-    width:60%; /* dynamic value later */
-    background:gold;
-}
-
-/* ===============================
-   BUTTONS
-================================ */
-
-button{
-    background:#f4c542;
-    border:none;
-    padding:10px 15px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
-}
-
-button:hover{
-    background:#ffd95e;
-}
-
-/* ===============================
-   UPLOAD
-================================ */
-
-.upload{
-    margin-top:15px;
-}
-
-input[type=file]{
-    margin-top:8px;
-}
-
-/* ===============================
-   SMALL ACTION BUTTONS
-================================ */
-
-.small-btn{
-    margin-top:10px;
-    display:block;
-    width:100%;
+.stat{
+background:var(--card-bg);
+border:1px solid var(--border-soft);
+border-radius:12px;
+padding:25px;
+box-shadow:var(--shadow-soft);
 }
 
 </style>
@@ -141,214 +36,110 @@ input[type=file]{
 
 <body>
 
-<!-- Flash messages -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="flash-messages" style="text-align:center; margin-top:10px;">
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
-
-<!-- Add somewhere at top of dashboard.html -->
-<div id="welcomeCard" class="welcome-card">
-  <h2>Welcome, {{ username }}!</h2>
-</div>
-
-<!-- Confetti library -->
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-
-<script>
-  // Pop confetti when page loads
-  window.addEventListener("load", function(){
-    // Animate welcome card
-    const card = document.getElementById("welcomeCard");
-    card.style.opacity = 0;
-    card.style.transform = "translateY(-50px)";
-    card.style.transition = "all 0.5s ease-in-out";
-    setTimeout(() => {
-      card.style.opacity = 1;
-      card.style.transform = "translateY(0)";
-    }, 100);
-
-    // Confetti explosion
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-  });
-</script>
-
-<style>
-.welcome-card {
-  background: white;
-  border-radius: 15px;
-  padding: 20px;
-  text-align: center;
-  font-size: 24px;
-  box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
-  margin: 20px auto;
-  width: fit-content;
-}
-</style>
-
-<header>
-<h1>NoteQuest Adventure Dashboard</h1>
-</header>
-
 <div class="container">
 
-<!-- =========================
-LEFT PANEL - USER STATS
-========================= -->
+<h1 class="title">Adventure Dashboard</h1>
 
-<aside class="panel">
+<p class="subtitle">Welcome {{ username }}</p>
 
-<h3>Player Stats</h3>
-
-<p><strong>Username:</strong> {{username}}</p>
-
-<p><strong>Level:</strong> {{level}}</p>
-
-<p><strong>Score:</strong> {{score}}</p>
-
-<p><strong>Progress to next level</strong></p>
-
-<div class="progress-bar">
-<div class="progress"></div>
-</div>
-
-<hr style="margin:10px 0; border:none; border-top:1px solid #ccc;">
-<a href="{{ url_for('logout') }}">
-    <button class="small-btn">🚪 Logout</button>
+<a href="{{ url_for('game') }}" class="btn-primary" id="playBtn" style="opacity:0.5;pointer-events:none;">
+Play Game
 </a>
 
-</aside>
+<div class="card" style="margin-top:30px">
 
+<h3>Upload Notes</h3>
 
-<!-- =========================
-CENTER MAP
-========================= -->
+<form id="uploadForm" enctype="multipart/form-data">
 
-<section class="map">
+<input type="file" name="file" id="fileInput" accept=".pdf,.txt,.docx" required>
 
-<!-- Replace with a real treasure map illustration -->
-<img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" alt="Treasure Map">
+<br><br>
 
-</section>
+<button type="submit" class="btn-primary">Upload Notes</button>
 
+</form>
 
-<!-- =========================
-RIGHT PANEL
-========================= -->
-
-<aside class="panel">
-
-<h3>Upcoming Challenge</h3>
-
-<!-- Replace with dynamic riddle from backend -->
-<p>{{riddle_preview}}</p>
-
-<a href="/game">
-<button class="small-btn">Play Now</button>
-</a>
-
-<div class="upload">
-    <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
-        <label><strong>Upload Notes</strong></label>
-        <input type="file" id="fileInput" name="file" accept=".txt,.docx,.pdf">
-        <button class="small-btn" type="submit">Upload</button>
-    </form>
-</div>
-
-<button class="small-btn">📜 View Notes</button>
-
-<button class="small-btn">🏆 Achievements</button>
-
-</aside>
-
-</div>
-
-<!-- Progress Card Overlay -->
-<div id="progressCard" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
-    background:rgba(0,0,0,0.4); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:white; padding:20px; border-radius:10px; width:300px; text-align:center;">
-        <h3>Generating Questions...</h3>
-        <div id="progressBarContainer" style="background:#eee; width:100%; height:20px; border-radius:10px; overflow:hidden;">
-            <div id="progressBar" style="width:0%; height:100%; background:#4caf50;"></div>
-        </div>
-        <p id="progressTimer">Time left: <span id="secondsLeft">10</span>s</p>
-    </div>
-</div>
-
-<footer style="text-align:center;padding:20px;">
-
-NoteQuest DBMS Learning Game
-
-</footer>
-
+<p id="uploadStatus" style="margin-top:10px;color:#6b7280">
+  Upload your study notes and the game will generate quiz questions from them.
+</p>
 <script>
-const uploadForm = document.getElementById("uploadForm");
-const progressCard = document.getElementById("progressCard");
-const progressBar = document.getElementById("progressBar");
-const secondsLeftElem = document.getElementById("secondsLeft");
 
-uploadForm.addEventListener("submit", function(e){
-    e.preventDefault();
+document.getElementById("uploadForm").addEventListener("submit", async function(e){
 
-    const fileInput = document.getElementById("fileInput");
-    if(fileInput.files.length === 0){
-        alert("Please select a file!");
-        return;
-    }
+e.preventDefault()
 
-    const file = fileInput.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
+const fileInput=document.getElementById("fileInput")
+const status=document.getElementById("uploadStatus")
 
-    // Show progress card
-    progressCard.style.display = "flex";
-    progressBar.style.width = "0%";
-    secondsLeftElem.innerText = "";
+const formData=new FormData()
+formData.append("file",fileInput.files[0])
 
-    // Track progress smoothly
-    let width = 0;
-    const interval = setInterval(() => {
-        if(width < 95){ // stop at 95% until backend finishes
-            width += 0.5; // adjust speed to look natural
-            progressBar.style.width = width + "%";
-        }
-    }, 100);
+status.innerText="Uploading and generating questions..."
 
-    fetch("/upload", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        clearInterval(interval);
-        progressBar.style.width = "100%"; // fill completely
-        secondsLeftElem.innerText = 0;
+try{
 
-        setTimeout(() => {
-            progressCard.style.display = "none"; // hide overlay
-            if(data.success){
-                alert(data.message || "Notes uploaded & questions generated!");
-                location.reload();
-            } else {
-                alert("Error: " + (data.error || "Unknown error"));
-            }
-        }, 300);
-    })
-    .catch(err => {
-        clearInterval(interval);
-        progressCard.style.display = "none";
-        alert("Upload failed: " + err);
-    });
-});
+const response=await fetch("/upload",{
+method:"POST",
+body:formData
+})
+
+const data=await response.json()
+
+if(data.success){
+
+status.innerText="✅ Notes uploaded! You can now play the game."
+
+document.getElementById("playBtn").style.opacity="1"
+document.getElementById("playBtn").style.pointerEvents="auto"
+
+}else{
+
+status.innerText="❌ "+data.error
+
+}
+
+}catch(err){
+
+status.innerText="❌ Upload failed"
+
+}
+
+})
+
 </script>
+
+</div>
+
+<div class="stats">
+
+<div class="stat">
+
+<h3>Level</h3>
+
+<p>{{ level }}</p>
+
+</div>
+
+<div class="stat">
+
+<h3>Score</h3>
+
+<p>{{ score }}</p>
+
+</div>
+
+<div class="stat">
+
+<h3>Achievements</h3>
+
+<p>🏆 🌟 💎</p>
+
+</div>
+
+</div>
+
+</div>
+
 </body>
 </html>

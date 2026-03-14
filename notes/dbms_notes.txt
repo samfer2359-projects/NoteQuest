@@ -1,5 +1,0 @@
-A Primary Key uniquely identifies each record in a table.
-A Foreign Key references a Primary Key in another table.
-Normalization reduces redundancy and improves data integrity.
-SQL stands for Structured Query Language.
-An index improves query performance in a database.

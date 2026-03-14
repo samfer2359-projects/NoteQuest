@@ -1,62 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Login - NoteQuest</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/style.css">
 
+<title>Login</title>
+
+<link rel="stylesheet" href="{{ url_for('static',filename='css/theme.css') }}">
 
 <style>
-.flash {
-  padding: 10px 20px;
-  margin: 10px auto;
-  width: fit-content;
-  border-radius: 8px;
-  font-weight: bold;
+
+.wrapper{
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
-.flash.error { background-color: #f8d7da; color: #721c24; }
-.flash.success { background-color: #d4edda; color: #155724; }
+
 </style>
+
 </head>
+
 <body>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="flash-messages">
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
+<div class="wrapper">
 
-<div class="cursor"></div>
-<div class="stars"></div>
+<div class="card" style="width:420px">
+
+<h2 class="title">Enter Quest</h2>
 
 <form method="POST" action="/login">
 
-<div class="card">
+<input class="input" type="email" name="email" placeholder="Email" required>
 
-<h2 class="logo">⚡ LOGIN</h2>
+<br><br>
 
-<div class="input-group">
-<input type="email" name="email" required>
-<label>Email</label>
-</div>
+<input class="input" type="password" name="password" placeholder="Password" required>
 
-<div class="input-group">
-<input type="password" name="password" required>
-<label>Password</label>
-</div>
+<br><br>
 
-<button type="submit" class="auth-btn">
-ENTER QUEST
-</button>
-
-</div>
+<button class="btn-primary" style="width:100%">Login</button>
 
 </form>
 
-<script src="script.js"></script>
+<br>
+
+<a href="/signup">Create account</a>
+
+</div>
+
+</div>
+
 </body>
 </html>

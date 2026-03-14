@@ -1,0 +1,146 @@
+/* ==============================
+   NoteQuest Pastel Theme
+============================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@300;400;600&display=swap');
+
+:root{
+
+--bg-main:#f8f9ff;
+--bg-gradient:linear-gradient(135deg,#f8f9ff,#e4c1f9,#a9def9);
+
+--card-bg:rgba(255,255,255,0.85);
+
+--pastel-blue:#a9def9;
+--pastel-lavender:#e4c1f9;
+--pastel-mint:#c1fba4;
+--pastel-peach:#ffd6a5;
+--pastel-yellow:#fdffb6;
+
+--text-main:#374151;
+--text-soft:#6b7280;
+
+--border-soft:#e5e7eb;
+
+--shadow-soft:0 8px 30px rgba(0,0,0,0.08);
+
+}
+
+*,
+*::before,
+*::after{
+box-sizing:border-box;
+margin:0;
+padding:0;
+}
+
+body{
+font-family:'Fredoka', sans-serif;
+background:var(--bg-gradient);
+color:#374151;
+min-height:100vh;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+/* STARFIELD */
+
+#starfield{
+position:fixed;
+inset:0;
+pointer-events:none;
+z-index:0;
+}
+
+.star{
+position:absolute;
+border-radius:50%;
+background:white;
+opacity:0;
+animation:twinkle var(--dur) ease-in-out infinite var(--delay);
+}
+
+@keyframes twinkle{
+0%,100%{opacity:0}
+50%{opacity:.7}
+}
+
+/* CARD */
+
+.card{
+background:var(--card-bg);
+border:1px solid var(--border-soft);
+border-radius:14px;
+padding:40px;
+box-shadow:var(--shadow-soft);
+backdrop-filter:blur(12px);
+}
+
+/* BUTTONS */
+
+.btn-primary{
+
+font-family:'Cinzel Decorative',serif;
+padding:14px 30px;
+border-radius:8px;
+border:none;
+cursor:pointer;
+background:linear-gradient(135deg,#a9def9,#e4c1f9);
+color:#2f2f4f;
+font-weight:bold;
+letter-spacing:1px;
+text-decoration:none;
+display:inline-block;
+transition:all .25s;
+}
+
+.btn-primary:hover{
+transform:translateY(-2px);
+box-shadow:0 10px 25px rgba(0,0,0,0.12);
+}
+
+.btn-secondary{
+
+background:rgba(255,255,255,.7);
+border:1px solid var(--border-soft);
+color:var(--text-soft);
+
+}
+
+/* INPUTS */
+
+.input{
+
+width:100%;
+padding:14px;
+border-radius:8px;
+border:1px solid var(--border-soft);
+font-size:15px;
+}
+
+.input:focus{
+
+outline:none;
+border-color:var(--pastel-blue);
+
+}
+
+/* TITLES */
+
+.title{
+font-family:'Fredoka', sans-serif;
+font-size:48px;
+font-weight:700;
+color:#3b3b5c;
+text-align:center;
+margin-bottom:10px;
+}
+
+.subtitle{
+
+color:#4b5563;
+text-align:center;
+margin-bottom:30px;
+
+}

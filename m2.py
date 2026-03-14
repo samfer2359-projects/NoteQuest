@@ -26,10 +26,6 @@ print("Initializing EasyOCR...")
 ocr_reader = easyocr.Reader(['en'])
 
 
-# ------------------------
-# Helper Functions
-# ------------------------
-
 def clean_text(text):
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'[^A-Za-z0-9 ,.-]', '', text)
@@ -51,21 +47,15 @@ def extract_text(file_path):
     elif ext == ".pdf":
         text = ""
         pdf_doc = fitz.open(file_path)
-
         for page in pdf_doc:
             page_text = page.get_text()
-
             if page_text.strip():
                 text += clean_text(page_text) + "\n"
             else:
                 pix = page.get_pixmap()
-                img = np.frombuffer(
-                    pix.samples, dtype=np.uint8
-                ).reshape(pix.height, pix.width, pix.n)
-
+                img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
                 ocr_text = " ".join(ocr_reader.readtext(img, detail=0))
                 text += clean_text(ocr_text) + "\n"
-
         return text
 
     else:
@@ -78,23 +68,18 @@ def connect_db():
 
 def insert_note(conn, content):
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO Notes (topic, content) VALUES (%s, %s)",
-        (TOPIC, content)
-    )
+    cursor.execute("INSERT INTO Notes (topic, content) VALUES (%s, %s)", (TOPIC, content))
     conn.commit()
     cursor.close()
 
 
 def store_concepts(conn, concepts, user_id):
     cursor = conn.cursor()
-
     for concept in concepts:
         cursor.execute(
             "INSERT INTO Concepts (topic, concept_text, user_id) VALUES (%s, %s, %s)",
             (TOPIC, concept, user_id)
         )
-
     conn.commit()
     cursor.close()
 
@@ -102,19 +87,13 @@ def store_concepts(conn, concepts, user_id):
 def extract_keywords(text):
     kw_extractor = yake.KeywordExtractor(lan="en", n=2, top=50)
     keywords = kw_extractor.extract_keywords(text)
-
     clean_keywords = []
     for kw, _ in keywords:
         kw = kw.strip()
         if len(kw) > 3:
             clean_keywords.append(kw)
-
     return list(set(clean_keywords))
 
-
-# ------------------------
-# Main Function
-# ------------------------
 
 def main():
     if len(sys.argv) != 3:
@@ -122,7 +101,7 @@ def main():
         sys.exit(1)
 
     file_path = sys.argv[1]
-    user_id = int(sys.argv[2])
+    user_id   = int(sys.argv[2])
 
     if not os.path.exists(file_path):
         print("File not found.")
@@ -135,20 +114,13 @@ def main():
         sys.exit(1)
 
     conn = connect_db()
-
     insert_note(conn, content)
-
     concepts = extract_keywords(content)
     store_concepts(conn, concepts, user_id)
-
     conn.close()
 
     print("Concepts extracted and stored successfully.")
 
-
-# ------------------------
-# Run Script
-# ------------------------
 
 if __name__ == "__main__":
     main()

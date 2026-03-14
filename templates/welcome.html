@@ -1,191 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>NoteQuest - Welcome</title>
+<title>NoteQuest</title>
 
-<!-- Google Font for playful headings -->
-<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
-
+<link rel="stylesheet" href="{{ url_for('static',filename='css/theme.css') }}">
 
 <style>
 
-/* ===============================
-   GLOBAL STYLES
-================================ */
-
-body{
-    margin:0;
-    font-family:'Nunito', sans-serif;
-    background:#b4e7b1;
-    color:#2c3e2f;
-    text-align:center;
-
-    /* subtle pattern effect */
-    background-image: radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px);
-    background-size:40px 40px;
+main{
+max-width:900px;
+padding:80px 20px;
+text-align:center;
+margin:0 auto;   /* centers horizontally */
+z-index:10;
 }
 
-/* ===============================
-   HEADER
-================================ */
-
-header{
-    padding:40px 20px;
+.features{
+margin-top:60px;
+display:flex;
+justify-content:center;
+gap:25px;
+flex-wrap:nowrap;
 }
 
-h1{
-    font-family:'Fredoka One', cursive;
-    font-size:48px;
-    color:#2b5d34;
-    margin-bottom:10px;
-}
-
-.tagline{
-    font-size:18px;
-    color:#3f5f45;
-}
-
-/* ===============================
-   TREASURE IMAGE
-================================ */
-
-.treasure-image{
-    margin-top:30px;
-}
-
-/* Replace image with your own treasure map or chest image */
-.treasure-image img{
-    width:220px;
-}
-
-/* ===============================
-   BUTTON
-================================ */
-
-.start-btn{
-    margin-top:35px;
-}
-
-.start-btn a{
-    text-decoration:none;
-}
-
-button{
-    background:#f4c542;
-    border:none;
-    padding:18px 40px;
-    font-size:20px;
-    font-weight:bold;
-    border-radius:10px;
-    cursor:pointer;
-    box-shadow:0px 4px 0px #c89e1f;
-    transition:0.2s;
-}
-
-button:hover{
-    background:#ffd95e;
-    transform:translateY(-2px);
-}
-
-/* ===============================
-   HOW TO PLAY
-================================ */
-
-.howto{
-    margin-top:50px;
-    max-width:600px;
-    margin-left:auto;
-    margin-right:auto;
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0px 3px 8px rgba(0,0,0,0.15);
-}
-
-.howto h3{
-    font-family:'Fredoka One';
-    color:#2b5d34;
-}
-
-/* ===============================
-   FOOTER
-================================ */
-
-footer{
-    margin-top:60px;
-    padding:10px;
-    font-size:14px;
-    color:#45664b;
-}   
-
-.image{
-    transform: scale(1.4);
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float{
-    0%{transform:translateY(0);}
-    50%{transform:translateY(-10px);}
-    100%{transform:translateY(0);}
+.feature{
+width:260px;
+background:var(--card-bg);
+border:1px solid var(--border-soft);
+border-radius:12px;
+padding:30px;
+box-shadow:var(--shadow-soft);
 }
 
 </style>
+
 </head>
 
 <body>
 
-<header>
+<div id="starfield"></div>
 
-<h1>NoteQuest — DBMS Treasure Hunt</h1>
+<main>
 
-<p class="tagline">
-Learn Database Concepts while exploring a treasure map!
-</p>
+<h1 class="title">NoteQuest</h1>
 
-</header>
-
-<!-- Treasure Image -->
-<!-- Replace this placeholder image with your own treasure chest or map image -->
-<div class="treasure-image">
-
-<img src="/static/images/treasure chest.jfif" alt="Treasure Chest" class="image">
-
-</div>
-
-<!-- Start Adventure Buttons -->
-<div class="start-btn">
-
-<a href="/login">
-<button>Login</button>
-</a>
-
-<a href="/signup" style="margin-left:20px;">
-<button>Sign Up</button>
-</a>
-
-</div>
-
-<!-- How to Play -->
-<section class="howto">
-
-<h3>How to Play</h3>
+<p class="subtitle">DBMS Treasure Hunt Adventure</p>
 
 <p>
-Explore the treasure map and solve DBMS riddles to unlock new levels.  
-Upload your notes to receive quiz challenges.  
-Earn points and discover hidden database treasures!
+Master database concepts by exploring maps,
+solving riddles, and unlocking treasure.
 </p>
 
-</section>
+<br>
 
-<footer>
+<a href="/signup" class="btn-primary">Begin Adventure</a>
+<a href="/login" class="btn-primary btn-secondary">Login</a>
 
-© 2026 NoteQuest Educational Game
+<div class="features">
 
-</footer>
+<div class="feature">
+<h3>📜 Explore Maps</h3>
+<p>Navigate magical database realms.</p>
+</div>
+
+<div class="feature">
+<h3>📤 Upload Notes</h3>
+<p>Turn study material into quests.</p>
+</div>
+
+<div class="feature">
+<h3>🏆 Earn Rewards</h3>
+<p>Unlock achievements and badges.</p>
+</div>
+
+</div>
+
+</main>
+
+<script>
+
+const sf=document.getElementById("starfield")
+
+for(let i=0;i<80;i++){
+
+let s=document.createElement("div")
+
+s.className="star"
+
+let size=Math.random()*3+1
+
+s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${size}px;height:${size}px;--dur:${Math.random()*3+2}s;--delay:${Math.random()*4}s;`
+
+sf.appendChild(s)
+
+}
+
+</script>
 
 </body>
 </html>

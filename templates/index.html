@@ -1,14 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Effective JavaScript: Frogger</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<title>NoteQuest Adventure</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+<script>
+window.USER_ID = {{ USER_ID|tojson }};
+</script>
+
 </head>
+
 <body>
-    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
-    <script src="js/resources.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/engine.js"></script>
+
+<!-- HUD -->
+<div class="game-ui">
+
+<div class="hud-item">❤️ Lives: <span id="lives">3</span></div>
+
+<div class="hud-item">💎 Gems: <span id="gems">0</span></div>
+
+<div class="hud-item">⭐ Score: <span id="score-display">0</span></div>
+
+<div class="hud-item">🗺 Level: <span id="level-display">1</span></div>
+
+</div>
+
+<!-- ALERT -->
+<div id="gameAlert" class="game-alert"></div>
+
+<!-- LEVEL BANNER -->
+<div id="levelBanner" class="level-banner"></div>
+
+<!-- GAME AREA -->
+<div class="game-container">
+
+<canvas id="gameCanvas" width="505" height="606"></canvas>
+
+</div>
+
+<!-- QUIZ MODAL -->
+<div id="quizModal" class="quiz-modal">
+
+<div class="quiz-card">
+
+<h2>💎 Treasure Question</h2>
+
+<p id="quizQuestion"></p>
+
+<div id="quizOptions" class="quiz-options"></div>
+
+<div id="quizHint" class="quiz-hint"></div>
+
+<div id="quizStatus" class="quiz-status"></div>
+
+</div>
+
+</div>
+
+<!-- LOADING SCREEN -->
+<div id="quizLoading" class="quiz-loading">
+Generating question...
+</div>
+
+<!-- GAME OVER -->
+<div id="gameOverScreen" class="game-over">
+
+<h1>Game Over</h1>
+
+<p>Your Score: <span id="finalScore"></span></p>
+
+<button onclick="location.reload()">Play Again</button>
+
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+
+<script src="{{ url_for('static', filename='js/resources.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/engine.js') }}"></script>
+
 </body>
 </html>
