@@ -1,14 +1,11 @@
-// ============================================================
-//  NoteQuest — Game Engine (render & update loop)
-//  Depends on: resources.js, app.js (loaded before this)
-// ============================================================
+
 (function(global) {
     const doc    = global.document;
     const canvas = doc.getElementById('gameCanvas');
     const ctx    = canvas.getContext('2d');
     let lastTime;
 
-    // ── Main loop ────────────────────────────────────────────
+    
     function main() {
         const now = Date.now();
         const dt  = (now - lastTime) / 1000.0;
@@ -20,14 +17,14 @@
 
     function init() { lastTime = Date.now(); main(); }
 
-    // ── Update ───────────────────────────────────────────────
+    
     function update(dt) {
         allEnemies.forEach(e => e.update(dt));
         player.update();
         checkCollisions();
     }
 
-    // ── Collision detection ───────────────────────────────────
+    
     function checkCollisions() {
         if (quizActive || player.lives <= 0) return;
 
@@ -38,7 +35,7 @@
             height: player.height - 80
         };
 
-        // Bug hits
+        
         allEnemies.forEach(e => {
             const eBox = { x: e.x + 15, y: e.y + 60, width: e.width - 30, height: e.height - 80 };
             if (overlaps(pBox, eBox)) {
@@ -50,7 +47,6 @@
             }
         });
 
-        // Gem pickup
         const gBox = { x: gem1.x + 20, y: gem1.y + 40, width: 35, height: 35 };
         if (overlaps(pBox, gBox)) {
             quizActive = true;
@@ -66,9 +62,7 @@
                a.y + a.height > b.y;
     }
 
-    // ── Tile drawing with fallback ────────────────────────────
-    // When images are missing we draw coloured rectangles so the
-    // game is fully playable even without image assets.
+    
     const TILE_COLORS = {
         '/static/images/water-block.png': '#1e6fa8',
         '/static/images/stone-block.png': '#6b7280',
@@ -82,17 +76,17 @@
         if (img) {
             ctx.drawImage(img, x, y);
         } else {
-            // Fallback: solid colour tile
+            
             ctx.fillStyle = TILE_COLORS[url] || '#334155';
             ctx.fillRect(x, y, 101, 83);
-            // subtle grid line
+            
             ctx.strokeStyle = 'rgba(0,0,0,0.3)';
             ctx.lineWidth = 1;
             ctx.strokeRect(x, y, 101, 83);
         }
     }
 
-    // ── Render ───────────────────────────────────────────────
+    
     function render() {
         const rowImages = [
             '/static/images/water-block.png',
@@ -121,25 +115,24 @@
         player.render();
     }
 
-    // ── Helpers ──────────────────────────────────────────────
+    
     function resetPlayerPosition() {
         player.x = 202;
         player.y = 415;
     }
 
-    // ── Expose drawSprite helper for entity render() methods ──
-    // img: Image|null, fallbackColor, label, x, y, w, h
+    
     global.drawSprite = function(img, fallbackColor, label, x, y, w, h) {
         w = w || 60; h = h || 60;
         if (img) {
             ctx.drawImage(img, x, y);
         } else {
-            // Rounded rect fallback
+            
             ctx.fillStyle = fallbackColor;
             ctx.beginPath();
             ctx.roundRect ? ctx.roundRect(x + 20, y + 60, w, h, 8) : ctx.rect(x + 20, y + 60, w, h);
             ctx.fill();
-            // Label
+            
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 11px sans-serif';
             ctx.textAlign = 'center';
@@ -148,7 +141,7 @@
         }
     };
 
-    // ── Boot ─────────────────────────────────────────────────
+    
     Resources.load([
         '/static/images/stone-block.png',
         '/static/images/water-block.png',
@@ -161,6 +154,6 @@
 
     Resources.onReady(init);
 
-    // expose canvas context globally
+    
     global.ctx = ctx;
 })(this);

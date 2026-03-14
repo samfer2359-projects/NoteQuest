@@ -1,7 +1,4 @@
--- =============================================
--- NoteQuest Database Setup
--- Run with: psql -U postgres -f database.sql
--- =============================================
+
 
 CREATE DATABASE notequest;
 

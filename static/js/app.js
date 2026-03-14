@@ -1,16 +1,10 @@
-// ============================================================
-//  NoteQuest — Game Entities & Quiz Logic
-//  Depends on: resources.js  (loaded first)
-//              engine.js     (loaded after this file)
-// ============================================================
 
-// ── Global game state ────────────────────────────────────────
 let level      = 1;
 let quizActive = false;
 let totalGems  = 0;
 let score      = 0;
 
-// ── Enemy ────────────────────────────────────────────────────
+
 class Enemy {
     constructor(x, y, speed) {
         this.x      = x;
@@ -82,11 +76,11 @@ class Player {
     }
 }
 
-// ── Gem / Treasure ───────────────────────────────────────────
+
 class Gem {
     constructor() {
-        this.width  = 60;   // smaller
-        this.height = 60;   // smaller
+        this.width  = 60;   
+        this.height = 60;   
         this.sprite = '/static/images/Gem Orange.png';
         this.setPosition(303, 83);
     }
@@ -94,20 +88,20 @@ class Gem {
     setPosition(x, y) { this.x = x; this.y = y; }
 
     render() {
-        this.float = Math.sin(Date.now() / 300) * 5; // small float animation
-        if (this.x < 0) return;   // hidden
+        this.float = Math.sin(Date.now() / 300) * 5; 
+        if (this.x < 0) return;   
 
         const img = Resources.get(this.sprite);
         if (typeof drawSprite === 'function') {
-            // Draw smaller gem
+            
             drawSprite(img, '#f59e0b', '💎', this.x + 20, this.y + 40 + this.float, 35, 35);
         } else if (img) {
-            ctx.drawImage(img, this.x, this.y, 35, 35); // smaller size fallback
+            ctx.drawImage(img, this.x, this.y, 35, 35); 
         }
     }
 }
 
-// ── Star (decorative) ────────────────────────────────────────
+
 class Star {
     constructor(x, y) {
         this.x      = x;
@@ -123,7 +117,7 @@ class Star {
     }
 }
 
-// ── Initialise entities ──────────────────────────────────────
+
 const allEnemies = [
     new Enemy(0,   60,  120),
     new Enemy(150, 143, 200),
@@ -134,7 +128,7 @@ const player   = new Player();
 const gem1     = new Gem();
 const allStars = [];
 
-// ── UI helpers ───────────────────────────────────────────────
+
 function updateUI() {
     document.getElementById('lives').textContent        = player.lives;
     document.getElementById('gems').textContent         = totalGems;
@@ -149,7 +143,7 @@ function showLevelBanner(lvl) {
     setTimeout(() => banner.classList.remove('show'), 2000);
 }
 
-// ── Gem management ───────────────────────────────────────────
+
 function spawnGem() {
     const cols = [0, 101, 202, 303, 404];
     const rows = [83, 166, 249];
@@ -162,7 +156,7 @@ function scaleEnemies() {
     allEnemies.forEach(e => { e.speed *= 1.12; });
 }
 
-// ── Quiz: fetch question when gem collected ──────────────────
+
 function onTreasureCollected(lvl) {
     showQuizLoading(true);
     fetch(`/generate-question?level=${lvl}&user_id=${window.USER_ID}`)
@@ -189,13 +183,13 @@ function showQuizLoading(on) {
     document.getElementById('quizLoading').style.display = on ? 'flex' : 'none';
 }
 
-// ── Build and show the quiz modal ────────────────────────────
+
 function showQuizModal(data) {
     const modal = document.getElementById('quizModal');
 
     document.getElementById('quizQuestion').textContent = data.question;
 
-    // Hint starts hidden — only revealed on wrong answer
+    
     const hintEl = document.getElementById('quizHint');
     hintEl.textContent = data.hint ? `💡 Hint: ${data.hint}` : '';
     hintEl.classList.remove('hint-revealed');
@@ -221,20 +215,20 @@ function showQuizModal(data) {
     modal.classList.add('active');
 }
 
-// ── Handle answer selection ───────────────────────────────────
+
 function handleAnswer(btn, selected, correct, hint) {
     const allBtns = document.querySelectorAll('.quiz-option');
     allBtns.forEach(b => b.disabled = true);
 
     if (selected === correct) {
-        // ── Correct ──────────────────────────────────────────
+        
         btn.classList.add('correct');
         totalGems++;
         const pts = level * 100;
         score += pts;
         updateUI();
 
-        // Persist to server
+        
         fetch('/update-progress', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -245,34 +239,34 @@ function handleAnswer(btn, selected, correct, hint) {
         setTimeout(() => closeQuiz(), 1400);
 
     } else {
-        // ── Wrong — show hint prominently ─────────────────────
+        
         btn.classList.add('wrong');
 
-        // Highlight the correct answer
+        
         allBtns.forEach(b => {
             if (b.textContent === correct) b.classList.add('correct');
         });
 
-        // Reveal the hint with animation
+        
         const hintEl = document.getElementById('quizHint');
         if (hint) {
             hintEl.textContent = `💡 Hint: ${hint}`;
             hintEl.classList.add('hint-revealed');
         }
 
-        // Status text
+        
         document.getElementById('quizStatus').textContent = '❌ Wrong answer — study the hint!';
         document.getElementById('quizStatus').className   = 'quiz-status wrong-status';
 
         player.lives--;
         updateUI();
 
-        // Keep modal open 3.5 s so user can read the hint, then close
+        
         setTimeout(() => closeQuiz(), 3500);
     }
 }
 
-// ── Close modal and resume game ───────────────────────────────
+
 function closeQuiz() {
     document.getElementById('quizModal').classList.remove('active');
     document.getElementById('quizStatus').textContent = '';
@@ -283,13 +277,13 @@ function closeQuiz() {
     }
 }
 
-// ── Game over ────────────────────────────────────────────────
+
 function triggerGameOver() {
     document.getElementById('finalScore').textContent = score;
     document.getElementById('gameOverScreen').classList.add('active');
 }
 
-// ── HUD alert strip ──────────────────────────────────────────
+
 function showGameAlert(msg, type) {
     const el = document.getElementById('gameAlert');
     el.textContent = msg;
@@ -298,7 +292,7 @@ function showGameAlert(msg, type) {
     el._timer = setTimeout(() => el.classList.remove('show'), 2800);
 }
 
-// ── Keyboard input ───────────────────────────────────────────
+
 document.addEventListener('keyup', function(e) {
     const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
     if (map[e.key]) player.handleInput(map[e.key]);

@@ -1,6 +1,4 @@
-/* ==============================
-   NoteQuest Pastel Theme
-============================== */
+
 
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@300;400;600&display=swap');
 
@@ -44,7 +42,7 @@ flex-direction:column;
 align-items:center;
 }
 
-/* STARFIELD */
+
 
 #starfield{
 position:fixed;
@@ -66,7 +64,7 @@ animation:twinkle var(--dur) ease-in-out infinite var(--delay);
 50%{opacity:.7}
 }
 
-/* CARD */
+
 
 .card{
 background:var(--card-bg);
@@ -77,7 +75,7 @@ box-shadow:var(--shadow-soft);
 backdrop-filter:blur(12px);
 }
 
-/* BUTTONS */
+
 
 .btn-primary{
 
@@ -108,7 +106,7 @@ color:var(--text-soft);
 
 }
 
-/* INPUTS */
+
 
 .input{
 
@@ -126,7 +124,7 @@ border-color:var(--pastel-blue);
 
 }
 
-/* TITLES */
+
 
 .title{
 font-family:'Fredoka', sans-serif;

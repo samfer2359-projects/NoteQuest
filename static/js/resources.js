@@ -1,4 +1,4 @@
-/* resources.js — image loading utility with caching + error fallback */
+
 (function() {
     var resourceCache  = {};
     var readyCallbacks = [];
@@ -24,9 +24,7 @@
             }
         };
 
-        /* Critical fix: if an image file is missing, mark it as 'missing'
-           (truthy) so isReady() still passes and the game loop starts.
-           Entities will draw colored rectangles as fallback. */
+        
         img.onerror = function() {
             resourceCache[url] = 'missing';
             if (isReady()) {
@@ -38,7 +36,7 @@
         img.src = url;
     }
 
-    /* Returns the Image object, or null if missing / not yet loaded */
+    
     function get(url) {
         var cached = resourceCache[url];
         return (cached && cached !== 'missing') ? cached : null;
@@ -47,7 +45,7 @@
     function isReady() {
         for (var k in resourceCache) {
             if (resourceCache.hasOwnProperty(k) && !resourceCache[k]) {
-                return false;   // still loading
+                return false;   
             }
         }
         return true;
