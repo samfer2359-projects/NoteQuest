@@ -15,33 +15,74 @@ window.USER_ID = {{ USER_ID|tojson }};
 
 <body>
 
-<!-- HUD -->
+
 <div class="game-ui">
 
-<div class="hud-item">❤️ Lives: <span id="lives">3</span></div>
+  <div class="hud-item">❤️ Lives: <span id="lives">3</span></div>
+  <div class="hud-item">💎 Gems: <span id="gems">0</span></div>
+  <div class="hud-item">⭐ Score: <span id="score-display">0</span></div>
+  <div class="hud-item">🗺 Level: <span id="level-display">1</span></div>
 
-<div class="hud-item">💎 Gems: <span id="gems">0</span></div>
+  
+  <div class="hud-item" style="margin-left:auto;">
+    <button id="logoutBtn">🚪 Logout</button>
+  </div>
 
-<div class="hud-item">⭐ Score: <span id="score-display">0</span></div>
 
-<div class="hud-item">🗺 Level: <span id="level-display">1</span></div>
+
+
+<div id="rulesCard" class="rules-card">
+  <h2>📜 Game Rules</h2>
+  <ul>
+    <li>Collect gems to increase your score.</li>
+    <li>Answer treasure questions correctly to earn bonuses.</li>
+    <li>You have 3 lives. Avoid enemies or lose a life.</li>
+    <li>Complete all levels to win the adventure!</li>
+  </ul>
+  <button id="closeRules">Close</button>
+</div>
+
+
+<button id="showRulesBtn" class="show-rules-btn">📜 Rules</button>
 
 </div>
 
-<!-- ALERT -->
+<script>
+  
+  const rulesCard = document.getElementById('rulesCard');
+  const showRulesBtn = document.getElementById('showRulesBtn');
+  const closeRulesBtn = document.getElementById('closeRules');
+
+  showRulesBtn.addEventListener('click', () => {
+    rulesCard.style.display = 'block';
+  });
+
+  closeRulesBtn.addEventListener('click', () => {
+    rulesCard.style.display = 'none';
+  });
+
+  
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    window.location.href = '/logout'; 
+  });
+</script>
+
+
+
+
 <div id="gameAlert" class="game-alert"></div>
 
-<!-- LEVEL BANNER -->
+
 <div id="levelBanner" class="level-banner"></div>
 
-<!-- GAME AREA -->
+
 <div class="game-container">
 
 <canvas id="gameCanvas" width="505" height="606"></canvas>
 
 </div>
 
-<!-- QUIZ MODAL -->
+
 <div id="quizModal" class="quiz-modal">
 
 <div class="quiz-card">
@@ -60,12 +101,12 @@ window.USER_ID = {{ USER_ID|tojson }};
 
 </div>
 
-<!-- LOADING SCREEN -->
+
 <div id="quizLoading" class="quiz-loading">
 Generating question...
 </div>
 
-<!-- GAME OVER -->
+
 <div id="gameOverScreen" class="game-over">
 
 <h1>Game Over</h1>

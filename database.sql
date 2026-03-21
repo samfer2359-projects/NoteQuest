@@ -69,3 +69,7 @@ CREATE INDEX idx_questions_topic   ON Questions(topic);
 CREATE INDEX idx_questions_level   ON Questions(difficulty);
 CREATE INDEX idx_progress_user     ON Progress(user_id);
 CREATE INDEX idx_progress_question ON Progress(question_id);
+ALTER TABLE Questions ADD COLUMN concept TEXT;
+ALTER TABLE Concepts
+ADD CONSTRAINT unique_user_concept UNIQUE (user_id, concept_text);
+
