@@ -15,6 +15,8 @@ align-items:center;
 height:100vh;
 }
 
+
+
 </style>
 
 </head>
@@ -26,6 +28,18 @@ height:100vh;
 <div class="card" style="width:420px">
 
 <h2 class="title">Enter Quest</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
 
 <form method="POST" action="/login">
 

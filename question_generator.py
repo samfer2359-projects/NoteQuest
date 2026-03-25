@@ -1,5 +1,3 @@
-
-
 import psycopg2
 import random
 import requests
@@ -15,7 +13,6 @@ DB_CONFIG = {
     "port": "5432"
 }
 
-MAX_LLM_RETRIES = 3
 
 
 def connect_db():
@@ -23,155 +20,219 @@ def connect_db():
 
 
 
+def get_difficulty(level):
+    if level <= 3:
+        return 1
+    elif level <= 6:
+        return 2
+    return 3
+
+
+
 def get_user_concepts(user_id):
     conn = connect_db()
     cur = conn.cursor()
+
     cur.execute("SELECT concept_text FROM Concepts WHERE user_id=%s", (user_id,))
     concepts = [row[0] for row in cur.fetchall()]
+
     cur.close()
     conn.close()
     return concepts
 
 
 
-def store_question(data, level, concept):
-    try:
-        conn = connect_db()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO Questions
-            (topic, riddle_text, options, correct_answer, hint, difficulty, concept)
-            VALUES (%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT (riddle_text, topic) DO NOTHING
-        """, (
-            TOPIC,
-            data["question"],
-            json.dumps(data["options"]),
-            data["correct_answer"],
-            data["hint"],
-            level,
-            concept
-        ))
-        conn.commit()
-        cur.close()
-        conn.close()
-        print("[DB] Stored question:", data["question"])
-    except Exception as e:
-        print("[DB] Store question error:", e)
+def get_unused_question(user_id, difficulty):
+    conn = connect_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT q.question_id, q.riddle_text, q.options, q.correct_answer, q.hint
+        FROM Questions q
+        LEFT JOIN Progress p 
+        ON q.question_id = p.question_id AND p.user_id = %s
+        WHERE (p.solved IS NULL OR p.solved = FALSE)
+        AND q.difficulty = %s
+        AND q.source = 'db'
+        ORDER BY RANDOM()
+        LIMIT 1
+    """, (user_id, difficulty))
+
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return None
+
+    return {
+        "question_id": row[0],
+        "question": row[1],
+        "options": row[2] if row[2] else [],
+        "correct_answer": row[3],
+        "hint": row[4] or ""
+    }
 
 
 
-def generate_llm_question(concept, level, user_id):
+def get_any_question(difficulty, concept):
+    conn = connect_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT question_id, riddle_text, options, correct_answer, hint
+        FROM Questions
+        WHERE difficulty = %s 
+        AND concept = %s
+        AND source = 'db'
+        ORDER BY RANDOM()
+        LIMIT 1
+    """, (difficulty, concept))
+
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return None
+
+    return {
+        "question_id": row[0],
+        "question": row[1],
+        "options": row[2] if row[2] else [],
+        "correct_answer": row[3],
+        "hint": row[4] or ""
+    }
+
+
+
+def mark_question_solved(user_id, question_id, score):
+    conn = connect_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO Progress (user_id, question_id, solved, score_awarded)
+        VALUES (%s,%s,TRUE,%s)
+        ON CONFLICT (user_id, question_id)
+        DO UPDATE SET solved=TRUE
+    """, (user_id, question_id, score))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+
+def store_question(data, difficulty, concept):
+    conn = connect_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO Questions
+        (topic, riddle_text, options, correct_answer, hint, difficulty, concept,source)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        ON CONFLICT (riddle_text, topic) DO NOTHING
+        RETURNING question_id
+    """, (
+        TOPIC,
+        data["question"],
+        json.dumps(data["options"]),
+        data["correct_answer"],
+        data["hint"],
+        difficulty,
+        concept,
+        "llm"
+    ))
+
+    result = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return result[0] if result else None
+
+
+
+def generate_llm_question(concept, difficulty):
     prompt = f"""
-Generate a multiple choice question for a 2D educational treasure hunt game.
-Topic: {TOPIC}
-Focus Concept: {concept}
-Difficulty Level: {level} (1 easy - 10 very hard)
-Rules:
-- 1 correct answer
-- 3 plausible distractors
-- Clear but not obvious hint
-- Output in JSON
+Generate a DBMS MCQ.
+Concept: {concept}
+Difficulty: {difficulty}
 
-Format:
+Return JSON:
 {{
-"question": "...",
-"options": ["A", "B", "C", "D"],
-"correct_answer": "...",
-"hint": "..."
+    "question": "...",
+    "options": ["A","B","C","D"],
+    "correct_answer": "...",
+    "hint": "..."
 }}
 """
 
-    for attempt in range(MAX_LLM_RETRIES):
-        try:
-            resp = requests.post(
-                "http://localhost:11434/api/generate",
-                json={"model": "mistral", "prompt": prompt, "stream": False},
-                timeout=120
-            )
-            raw = resp.json().get("response", "")
-            
-            parsed = manual_parse_json(raw)
-            if parsed:
-                print("[LLM] Generated question:", parsed["question"])
-                return parsed
-        except Exception as e:
-            print(f"[LLM] Attempt {attempt+1} failed:", e)
-            continue
-
-    
-    return generate_fallback_question(concept, user_id)
-
-
-
-def manual_parse_json(raw_text):
-    """
-    Attempt to convert any LLM output into valid JSON.
-    Handles:
-    - single quotes
-    - missing quotes around keys
-    - simple manual fixes
-    """
     try:
-        
-        cleaned = raw_text.replace("'", '"')
-        
-        cleaned = cleaned.replace("question:", '"question":') \
-                         .replace("options:", '"options":') \
-                         .replace("correct_answer:", '"correct_answer":') \
-                         .replace("hint:", '"hint":')
-        
-        cleaned = cleaned.replace(",}", "}").replace(",]", "]")
-        data = json.loads(cleaned)
+        resp = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "mistral",
+                "prompt": prompt,
+                "stream": False
+            },
+            timeout=60
+        )
 
-        
-        if all(k in data for k in ["question", "options", "correct_answer", "hint"]):
-            if isinstance(data["options"], list) and len(data["options"]) == 4:
-                if data["correct_answer"] in data["options"]:
-                    return data
-    except:
-        pass
+        raw = resp.json().get("response", "")
+        return manual_parse_json(raw)
+
+    except Exception:
+        return None
+
+
+def manual_parse_json(raw):
+    try:
+        raw = raw.replace("'", '"')
+        data = json.loads(raw)
+
+        if (
+            "question" in data and
+            "options" in data and
+            isinstance(data["options"], list) and
+            len(data["options"]) == 4
+        ):
+            return data
+    except Exception:
+        return None
+
     return None
 
 
 
-def generate_fallback_question(concept, user_id):
-    all_concepts = get_user_concepts(user_id)
-    distractors = [c for c in all_concepts if c != concept]
-    distractors = random.sample(distractors, min(3, len(distractors)))
-    while len(distractors) < 3:
-        distractors.append("Something unrelated")
-
-    options = [concept] + distractors
-    random.shuffle(options)
-
-    data = {
-        "question": f"What best describes '{concept}'?",
-        "options": options,
-        "correct_answer": concept,
-        "hint": f"Focus on the key idea of {concept}"
-    }
-    print("[FALLBACK] Generated question:", data["question"])
-    return data
 
 
+def fetch_question(level, user_id):
+    difficulty = get_difficulty(level)
 
-def generate_question(level, user_id):
+    
     concepts = get_user_concepts(user_id)
-    if not concepts:
-        raise Exception("No concepts found. Upload notes first.")
 
-    concept = random.choice(concepts)
-    question_data = generate_llm_question(concept, level, user_id)
-    store_question(question_data, level, concept)
-    return question_data
+    if concepts:
+        concept = random.choice(concepts)
+        qdata = generate_llm_question(concept, difficulty)
 
+        if qdata:
+            qid = store_question(qdata, difficulty, concept)
+            if qid:
+                qdata["question_id"] = qid
+                return qdata
 
+    
+    q = get_unused_question(user_id, difficulty)
+    if q:
+        return q
 
-fetch_question = generate_question
+    
+    if concepts:
+        concept = random.choice(concepts)
+        q = get_any_question(difficulty, concept)
+        if q:
+            return q
 
-
-
-if __name__ == "__main__":
-    q = generate_question(level=3, user_id=1)
-    print(json.dumps(q, indent=2))
+    return None

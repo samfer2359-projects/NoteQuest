@@ -8,16 +8,16 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
 <script>
-window.USER_ID = {{ USER_ID|tojson }};
+  window.USER_ID = {{ USER_ID|tojson }};
+  window.INIT_LEVEL = {{ LEVEL|tojson }};
+  window.INIT_SCORE = {{ SCORE|tojson }};
 </script>
-
 </head>
 
 <body>
 
-
 <div class="game-ui">
-
+  
   <div class="hud-item">❤️ Lives: <span id="lives">3</span></div>
   <div class="hud-item">💎 Gems: <span id="gems">0</span></div>
   <div class="hud-item">⭐ Score: <span id="score-display">0</span></div>
@@ -25,13 +25,16 @@ window.USER_ID = {{ USER_ID|tojson }};
 
   
   <div class="hud-item" style="margin-left:auto;">
-    <button id="logoutBtn">🚪 Logout</button>
+    <button id="showRulesBtn">📜 Rules</button>
+    <button id="backHomeBtn">🏠 Home</button>
+    <form id="logoutForm" method="POST" style="display:inline;">
+      <button type="submit">🚪 Logout</button>
+    </form>
   </div>
+</div>
 
 
-
-
-<div id="rulesCard" class="rules-card">
+<div id="rulesCard" class="rules-card" style="display:none;">
   <h2>📜 Game Rules</h2>
   <ul>
     <li>Collect gems to increase your score.</li>
@@ -42,86 +45,64 @@ window.USER_ID = {{ USER_ID|tojson }};
   <button id="closeRules">Close</button>
 </div>
 
+<div id="gameAlert" class="game-alert"></div>
+<div id="levelBanner" class="level-banner"></div>
 
-<button id="showRulesBtn" class="show-rules-btn">📜 Rules</button>
-
+<div class="game-container">
+  <canvas id="gameCanvas" width="505" height="606"></canvas>
 </div>
+
+
+<div id="quizModal" class="quiz-modal">
+  <div class="quiz-card">
+    <h2>💎 Treasure Question</h2>
+    <p id="quizQuestion"></p>
+    <div id="quizOptions" class="quiz-options"></div>
+    <div id="quizHint" class="quiz-hint"></div>
+    <div id="quizStatus" class="quiz-status"></div>
+  </div>
+</div>
+
+
+<div id="quizLoading" class="quiz-loading">Generating question...</div>
+
+
+<div id="gameOverScreen" class="game-over">
+  <h1>Game Over</h1>
+  <p>Your Score: <span id="finalScore"></span></p>
+  <button onclick="location.reload()">🎮 Play Again</button>
+</div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+<script src="{{ url_for('static', filename='js/resources.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/engine.js') }}"></script>
 
 <script>
   
   const rulesCard = document.getElementById('rulesCard');
   const showRulesBtn = document.getElementById('showRulesBtn');
   const closeRulesBtn = document.getElementById('closeRules');
+  const backHomeBtn = document.getElementById('backHomeBtn');
 
-  showRulesBtn.addEventListener('click', () => {
-    rulesCard.style.display = 'block';
-  });
+  showRulesBtn.addEventListener('click', () => rulesCard.style.display = 'block');
+  closeRulesBtn.addEventListener('click', () => rulesCard.style.display = 'none');
 
-  closeRulesBtn.addEventListener('click', () => {
-    rulesCard.style.display = 'none';
+  
+  backHomeBtn.addEventListener('click', () => {
+    window.location.href = '/dashboard';
   });
 
   
-  document.getElementById('logoutBtn').addEventListener('click', () => {
-    window.location.href = '/logout'; 
+  const logoutForm = document.getElementById('logoutForm');
+  logoutForm.addEventListener('submit', e => {
+    e.preventDefault();
+    fetch('/logout', {method:'POST'})
+      .then(() => window.location.href='/')
+      .catch(() => alert("Logout failed"));
   });
 </script>
-
-
-
-
-<div id="gameAlert" class="game-alert"></div>
-
-
-<div id="levelBanner" class="level-banner"></div>
-
-
-<div class="game-container">
-
-<canvas id="gameCanvas" width="505" height="606"></canvas>
-
-</div>
-
-
-<div id="quizModal" class="quiz-modal">
-
-<div class="quiz-card">
-
-<h2>💎 Treasure Question</h2>
-
-<p id="quizQuestion"></p>
-
-<div id="quizOptions" class="quiz-options"></div>
-
-<div id="quizHint" class="quiz-hint"></div>
-
-<div id="quizStatus" class="quiz-status"></div>
-
-</div>
-
-</div>
-
-
-<div id="quizLoading" class="quiz-loading">
-Generating question...
-</div>
-
-
-<div id="gameOverScreen" class="game-over">
-
-<h1>Game Over</h1>
-
-<p>Your Score: <span id="finalScore"></span></p>
-
-<button onclick="location.reload()">Play Again</button>
-
-</div>
-
-<script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
-
-<script src="{{ url_for('static', filename='js/resources.js') }}"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
-<script src="{{ url_for('static', filename='js/engine.js') }}"></script>
 
 </body>
 </html>

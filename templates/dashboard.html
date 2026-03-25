@@ -3,135 +3,223 @@
 <head>
   <title>Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+
   <style>
-    .container{
-      max-width:1200px;
-      padding:40px;
-      width:100%;
-      margin:0 auto;  
+    .container {
+      max-width: 1200px;
+      padding: 40px;
+      margin: 0 auto;
     }
-    .stats{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-      gap:20px;
-      margin-top:30px;
+
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
-    .stat{
-      background:var(--card-bg);
-      border:1px solid var(--border-soft);
-      border-radius:12px;
-      padding:25px;
-      box-shadow:var(--shadow-soft);
+
+    
+    #messageBox {
+      display: none;
+      margin-bottom: 20px;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255,255,255,0.2);
     }
-    .card{
-      background:var(--card-bg);
-      border:1px solid var(--border-soft);
-      border-radius:12px;
-      padding:20px;
-      box-shadow:var(--shadow-soft);
-      margin-bottom:20px;
+
+    #messageBox.success {
+      border-left: 4px solid #4dff88;
     }
-    .header-actions{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:30px;
+
+    #messageBox.error {
+      border-left: 4px solid #ff4d4d;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: var(--shadow-soft);
+      margin-bottom: 20px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+    }
+
+    .stat {
+      text-align: center;
     }
   </style>
 </head>
 
 <body>
+
 <div class="container">
 
-  
+ 
   <div class="header-actions">
     <div>
       <h1 class="title">Adventure Dashboard</h1>
       <p class="subtitle">Welcome {{ username }}</p>
     </div>
+
     <form method="POST" action="{{ url_for('logout') }}">
-      <button type="submit" class="btn-primary" style="background:#ef4444;">Logout</button>
+      <button type="submit" class="btn-primary" style="background:#ef4444;">
+        Logout
+      </button>
     </form>
   </div>
 
   
-  <div class="card">
-    <h3>📜 Game Instructions</h3>
-    <ul>
-      <li>Upload your notes first to generate quiz questions.</li>
-      <li>Collect gems and answer questions to level up.</li>
-      <li>Correct answers increase score; wrong answers may reduce score or require retry.</li>
-      <li>Using hints reduces points earned.</li>
-      <li>Enjoy the adventure!</li>
-    </ul>
-  </div>
+  <div id="messageBox"></div>
 
   
-  <a href="{{ url_for('game') }}" class="btn-primary" id="playBtn"
-     {% if user_has_notes(session['user_id']) %}
-         style="opacity:1;pointer-events:auto;"
-     {% else %}
-         style="opacity:0.5;pointer-events:none;"
-     {% endif %}
-  >
-    Play Game
-  </a>
+  <div class="layout">
 
-  
-  <div class="card">
-    <h3>📂 Upload Notes</h3>
-    <form id="uploadForm" enctype="multipart/form-data">
-      <input type="file" name="file" id="fileInput" accept=".pdf,.txt,.docx" required>
-      <p style="margin-top:5px; font-size:0.9em; color:#6b7280;">
-        Supported formats: PDF, TXT, DOCX
-      </p>
-      <br>
-      <button type="submit" class="btn-primary">Upload Notes</button>
-    </form>
-    <p id="uploadStatus" style="margin-top:10px;color:#6b7280">
-      Upload your study notes and the game will generate quiz questions from them.
-    </p>
-  </div>
+    
+    <div>
 
-  <script>
-    document.getElementById("uploadForm").addEventListener("submit", async function(e){
-      e.preventDefault();
-      const fileInput = document.getElementById("fileInput");
-      const status = document.getElementById("uploadStatus");
+      <div class="card">
+        <h3>📜 Game Instructions</h3>
+        <ul>
+          <li>Upload your notes first to generate quiz questions.</li>
+          <li>Collect gems and answer questions to level up.</li>
+          <li>Correct answers increase score; wrong answers may require retry.</li>
+          <li>Using hints reduces points earned.</li>
+          <li>Enjoy the adventure!</li>
+        </ul>
+      </div>
 
-      const formData = new FormData();
-      formData.append("file", fileInput.files[0]);
-      status.innerText = "Uploading and generating questions...";
+      <a href="{{ url_for('game') }}" class="btn-primary" id="playBtn"
+         {% if user_has_notes(session['user_id']) %}
+           style="opacity:1;pointer-events:auto;"
+         {% else %}
+           style="opacity:0.5;pointer-events:none;"
+         {% endif %}>
+        {{ 'Resume Game' if level > 1 else 'Start Game' }}
+      </a>
 
-      try{
-        const response = await fetch("/upload", { method:"POST", body: formData });
-        const data = await response.json();
+      <br><br>
 
-        if(data.success){
-          status.innerText = "✅ Notes uploaded! You can now play the game.";
-          document.getElementById("playBtn").style.opacity = "1";
-          document.getElementById("playBtn").style.pointerEvents = "auto";
-        } else {
-          status.innerText = "❌ " + data.error;
-        }
-      } catch(err){
-        status.innerText = "❌ Upload failed";
-      }
-    });
-  </script>
+      <button onclick="resetGame()" class="btn-primary" style="background:#f59e0b;">
+        Restart Game
+      </button>
 
-  <!-- Stats -->
-  <div class="stats">
-    <div class="stat">
-      <h3>Level</h3>
-      <p>{{ level }}</p>
     </div>
-    <div class="stat">
-      <h3>Score</h3>
-      <p>{{ score }}</p>
+
+    
+    <div>
+
+      <div class="card">
+        <h3>📂 Upload Notes</h3>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+          <input type="file" name="file" id="fileInput" accept=".pdf,.txt,.docx" required>
+
+          <p style="margin-top:5px; font-size:0.9em; color:#6b7280;">
+            Supported formats: PDF, TXT, DOCX
+          </p>
+
+          <br>
+
+          <button type="submit" class="btn-primary">
+            Upload Notes
+          </button>
+        </form>
+
+        <p id="uploadStatus" style="margin-top:10px;color:#6b7280">
+          Upload your study notes to play the game.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>📊 Stats</h3>
+
+        <div class="stats">
+          <div class="stat">
+            <h3>Level</h3>
+            <p>{{ level }}</p>
+          </div>
+
+          <div class="stat">
+            <h3>Score</h3>
+            <p>{{ score }}</p>
+          </div>
+        </div>
+      </div>
+
     </div>
+
   </div>
 
 </div>
+
+<script>
+async function resetGame(){
+  const res = await fetch("/reset-progress", {method:"POST"});
+  const data = await res.json();
+
+  if(data.success){
+    const msgBox = document.getElementById("messageBox");
+
+    msgBox.style.display = "block";
+    msgBox.className = "success";
+    msgBox.innerText = "✅ Game restarted. Upload Notes and Press Start Game to play.";
+
+    
+    const playBtn = document.getElementById("playBtn");
+    playBtn.style.opacity = "0.5";
+    playBtn.style.pointerEvents = "none";
+
+    
+    setTimeout(() => {
+      msgBox.style.display = "none";
+    }, 4000);
+  }
+}
+
+document.getElementById("uploadForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+
+  const fileInput = document.getElementById("fileInput");
+  const status = document.getElementById("uploadStatus");
+
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+
+  status.innerText = "Uploading and generating questions...";
+
+  try {
+    const response = await fetch("/upload", { method:"POST", body: formData });
+    const data = await response.json();
+
+    if(data.success){
+      status.innerText = "✅ Notes uploaded! You can now play the game.";
+      document.getElementById("playBtn").style.opacity = "1";
+      document.getElementById("playBtn").style.pointerEvents = "auto";
+    } else {
+      status.innerText = "❌ " + data.error;
+    }
+
+  } catch(err){
+    status.innerText = "❌ Upload failed";
+  }
+});
+</script>
+
 </body>
 </html>

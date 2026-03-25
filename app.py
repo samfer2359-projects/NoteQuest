@@ -4,11 +4,13 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
-from question_generator import fetch_question
+from question_generator import fetch_question, mark_question_solved
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-ALLOWED_EXTENSIONS = {'pdf', 'txt', 'docx'}  
+ALLOWED_EXTENSIONS = {'pdf', 'txt', 'docx'}
+MAX_LEVEL = 10
 
 DB_CONFIG = {
     "database": "notequest",
@@ -19,38 +21,97 @@ DB_CONFIG = {
 }
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'),
+
+app = Flask(__name__,
+            template_folder=os.path.join(BASE_DIR, 'templates'),
             static_folder=os.path.join(BASE_DIR, 'static'))
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 app.secret_key = 'notequest_secret_key'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 
 
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
+
+def get_user_progress(user_id):
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("SELECT level, score FROM Users WHERE user_id=%s", (user_id,))
+    data = cur.fetchone()
+    cur.close()
+    conn.close()
+    return data if data else (1, 0)
+
+
+def update_user_progress(user_id, level, score):
+    level = min(level, MAX_LEVEL)
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE Users SET level=%s, score=%s WHERE user_id=%s",
+        (level, score, user_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 def user_has_notes(user_id):
     conn = connect_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM Concepts WHERE user_id=%s LIMIT 1", (user_id,))
-    exists = cursor.fetchone() is not None
-    cursor.close()
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM Concepts WHERE user_id=%s LIMIT 1", (user_id,))
+    exists = cur.fetchone() is not None
+    cur.close()
     conn.close()
     return exists
 
-@app.context_processor
-def utility_processor():
-    return dict(user_has_notes=user_has_notes)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route("/")
 def home():
     return render_template("welcome.html")
 
-@app.route("/signup", methods=['GET','POST'])
+
+@app.route("/dashboard")
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    level, score = get_user_progress(user_id)
+
+    return render_template(
+        "dashboard.html",
+        username=session['username'],
+        level=level,
+        score=score,
+        user_has_notes=user_has_notes
+    )
+
+
+@app.route("/game")
+def game():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+
+    if not user_has_notes(user_id):
+        flash("Upload notes first!", "error")
+        return redirect(url_for('dashboard'))
+
+    return render_template(
+    "index.html",
+    USER_ID=user_id,
+    LEVEL=get_user_progress(user_id)[0],
+    SCORE=get_user_progress(user_id)[1]
+)
+
+
+
+@app.route("/signup", methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -58,157 +119,176 @@ def signup():
         password = request.form.get('password')
         confirm = request.form.get('confirm_password')
 
-        if not username or not email or not password:
-            flash("All fields are required.", "error")
-            return redirect(url_for('signup'))
-
         if password != confirm:
-            flash("Passwords do not match.", "error")
+            flash("Passwords do not match", "error")
             return redirect(url_for('signup'))
-
-        conn = connect_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM Users WHERE email=%s", (email,))
-        if cursor.fetchone():
-            flash("User already exists. Login instead.", "error")
-            cursor.close(); conn.close()
-            return redirect(url_for('login'))
 
         hashed = generate_password_hash(password)
-        cursor.execute("INSERT INTO Users(username,email,password,level,score) VALUES(%s,%s,%s,1,0)",
-                       (username, email, hashed))
+
+        conn = connect_db()
+        cur = conn.cursor()
+
+        cur.execute("SELECT 1 FROM Users WHERE email=%s", (email,))
+        if cur.fetchone():
+            flash("User already exists", "error")
+            return redirect(url_for('login'))
+
+        cur.execute(
+            "INSERT INTO Users(username,email,password,level,score) VALUES(%s,%s,%s,1,0)",
+            (username, email, hashed)
+        )
+
         conn.commit()
-        cursor.close(); conn.close()
-        flash("Account created successfully!", "success")
+        cur.close()
+        conn.close()
+
+        flash("Signup successful! Please log in.", "success")
         return redirect(url_for('login'))
+
     return render_template("signup.html")
 
-@app.route("/login", methods=['GET','POST'])
+
+@app.route("/login", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
+
         conn = connect_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username, password, level, score FROM Users WHERE email=%s", (email,))
-        user = cursor.fetchone()
-        cursor.close(); conn.close()
+        cur = conn.cursor()
+        cur.execute("SELECT user_id, username, password FROM Users WHERE email=%s", (email,))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
 
         if not user:
-            flash("No account found. Please sign up.", "error")
+            flash("User not registered. Please sign up first.", "error")
             return redirect(url_for('signup'))
         if not check_password_hash(user[2], password):
-            flash("Incorrect password.", "error")
+            flash("Incorrect password. Try again.", "error")
             return redirect(url_for('login'))
 
         session['user_id'] = user[0]
         session['username'] = user[1]
-        session['level'] = user[3]
-        session['score'] = user[4]
 
-        flash(f"Welcome back, {user[1]}!", "success")
         return redirect(url_for('dashboard'))
+
     return render_template("login.html")
 
-@app.route("/dashboard")
-def dashboard():
-    if 'user_id' not in session:
-        flash("Please log in first!", "error")
-        return redirect(url_for('login'))
-    return render_template("dashboard.html",
-                           username=session['username'],
-                           level=session.get('level', 1),
-                           score=session.get('score', 0),
-                           has_notes=user_has_notes(session['user_id']))
-
-@app.route("/game")
-def game():
-    if 'user_id' not in session:
-        flash("You need to log in to play.", "error")
-        return redirect(url_for('login'))
-    if not user_has_notes(session['user_id']):
-        flash("Upload notes first to generate quiz questions!", "error")
-        return redirect(url_for('dashboard'))
-    return render_template("index.html", USER_ID=session['user_id'])
 
 @app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
-    flash("Logged out successfully!", "success")
     return redirect(url_for("home"))
 
 
-@app.route("/upload", methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({"success": False, "error": "No file selected"}), 400
-    file = request.files['file']
-    if file.filename == '' or not allowed_file(file.filename):
-        return jsonify({"success": False, "error": "Invalid file type. Only PDF, TXT, DOCX allowed"}), 400
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
 
-    try:
-        result = subprocess.run(
-            ["python", os.path.join(BASE_DIR, "m2.py"), filepath, str(session['user_id'])],
-            capture_output=True, text=True, check=True
-        )
-        print("m2.py output:", result.stdout.strip())
-    except subprocess.CalledProcessError as e:
-        return jsonify({"success": False, "error": f"Concept extraction failed: {e.stderr or e.stdout}"}), 500
-
-    return jsonify({"success": True, "message": "Notes uploaded and concepts extracted successfully!"})
-
-
-@app.route("/generate-question", methods=['GET'])
+@app.route("/generate-question")
 def generate_question():
-    try:
-        question = fetch_question(session.get('level', 1), session.get('user_id'))
-        return jsonify(question)
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+    user_id = session.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
+
+    level, _ = get_user_progress(user_id)
+
+    question = fetch_question(level, user_id)
+
+    if not question:
+        return jsonify({"error": "No questions available"})
+
+    return jsonify(question)
 
 
 @app.route("/submit-answer", methods=["POST"])
 def submit_answer():
-    data = request.get_json()
+    data = request.get_json() or {}
     user_id = session.get("user_id")
-    selected = data.get("answer")
-    correct = data.get("correct_answer")
-    used_hint = data.get("used_hint", False)
 
-    level = session.get("level", 1)
-    score = session.get("score", 0)
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
 
-    result = {}
+    level, score = get_user_progress(user_id)
 
-    if selected == correct:
-        points = 5 if used_hint else 10
-        score += points
-        level += 1
-        result.update({"correct": True, "score": score, "level": level, "points": points, "level_up": True})
-    else:
-        
-        if not used_hint:
-            result.update({"correct": False, "action": "hint"})
-        else:
-            score -= 5
-            result.update({"correct": False, "action": "restart", "score": score, "level_up": False})
-            session['level'] = level  
+    
+    if data["answer"] == data["correct_answer"]:
+        score += 10
+        new_level = min(level + 1, MAX_LEVEL)
 
-   
+        mark_question_solved(user_id, data["question_id"], 10)
+        update_user_progress(user_id, new_level, score)
+
+        return jsonify({
+            "correct": True,
+            "level": new_level,
+            "score": score,
+            "level_up": new_level > level,
+            "points": 10
+        })
+
+    
+    if not data.get("used_hint"):
+        return jsonify({"correct": False, "action": "hint"})
+
+    
+    return jsonify({
+        "correct": False,
+        "action": "restart",
+        "score": score
+    })
+
+
+
+@app.route("/reset-progress", methods=["POST"])
+def reset_progress():
+    user_id = session.get("user_id")
+
+    update_user_progress(user_id, 1, 0)
+
     conn = connect_db()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE Users SET score=%s, level=%s WHERE user_id=%s", (score, level, user_id))
+    cur = conn.cursor()
+    cur.execute("DELETE FROM UserQuestionProgress WHERE user_id=%s", (user_id,))
     conn.commit()
-    cursor.close()
+    cur.close()
     conn.close()
 
-    session["score"] = score
-    session["level"] = level
+    return jsonify({"success": True})
 
-    return jsonify(result)
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route("/upload", methods=['POST'])
+def upload_file():
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return jsonify({"success": False, "error": "Not logged in"}), 401
+    
+    if 'file' not in request.files:
+        return jsonify({"success": False, "error": "No file selected"})
+
+    file = request.files['file']
+
+    if file.filename == '' or not allowed_file(file.filename):
+        return jsonify({"success": False, "error": "Invalid file type"})
+
+    filename = f"{user_id}_{secure_filename(file.filename)}"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    try:
+        subprocess.run(
+            ["python", os.path.join(BASE_DIR, "m2.py"), filepath, str(user_id)],
+            check=True
+        )
+    except subprocess.CalledProcessError:
+        return jsonify({"success": False, "error": "Processing failed"})
+
+    return jsonify({"success": True})
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)

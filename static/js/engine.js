@@ -26,7 +26,7 @@
 
         const pBox = {x:player.x+15, y:player.y+60, width:player.width-30, height:player.height-80};
 
-        // BUG COLLISIONS ONLY IN STONE ROWS (rows 2,3,4)
+        
         if(player.y >= 2*83 && player.y <= 4*83){
             allEnemies.forEach(e=>{
                 const eBox = {x:e.x+15, y:e.y+60, width:e.width-30, height:e.height-80};
@@ -40,11 +40,11 @@
             });
         }
 
-        // GEM COLLISION ALWAYS
+        
         const gBox = {x:gem.x, y:gem.y, width:gem.width, height:gem.height};
         if(overlaps(pBox,gBox)){
             gem.setPosition(-200,-200);
-            onTreasureCollected(level);
+            onTreasureCollected();
         }
     }
 
@@ -67,7 +67,7 @@
             '/static/images/stone-block.png', // row 2
             '/static/images/stone-block.png', // row 3
             '/static/images/stone-block.png', // row 4
-            '/static/images/grass-block.png'  // row 5 (only 1 green row now)
+            '/static/images/grass-block.png'  // row 5 
         ];
         ctx.clearRect(0,0,canvas.width,canvas.height);
         for(let row=0; row<6; row++) 
@@ -78,7 +78,7 @@
 
     function renderEntities(){
         allEnemies.forEach(e=>e.render());
-        gem.render();   // always render gem after enemies
+        gem.render();   
         player.render();
     }
 
