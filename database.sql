@@ -76,3 +76,6 @@ ADD CONSTRAINT unique_user_concept UNIQUE (user_id, concept_text);
 ALTER TABLE Users ADD COLUMN lives INT DEFAULT 3;
 
 ALTER TABLE Questions ADD COLUMN source VARCHAR(20) DEFAULT 'db';
+
+ALTER TABLE Questions
+ALTER COLUMN options TYPE json USING options::json;

@@ -70,7 +70,14 @@
 <div id="gameOverScreen" class="game-over">
   <h1>Game Over</h1>
   <p>Your Score: <span id="finalScore"></span></p>
-  <button onclick="location.reload()">🎮 Play Again</button>
+  <button onclick="restartGame()">🎮 Play Again</button>
+</div>
+
+<div id="victoryScreen" class="game-over">
+  <h1>🎉 Congratulations! 🎉</h1>
+  <p>You completed all levels!</p>
+  <p>Your Score: <span id="victoryScore"></span></p>
+  <button onclick="restartGame()">🎮 Play Again</button>
 </div>
 
 

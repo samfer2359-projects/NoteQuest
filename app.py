@@ -185,19 +185,28 @@ def logout():
 
 @app.route("/generate-question")
 def generate_question():
-    user_id = session.get('user_id')
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"error": "Not logged in"}), 401
 
-    if not user_id:
-        return jsonify({"error": "Not logged in"}), 401
+        level, _ = get_user_progress(user_id)
+        question = fetch_question(level, user_id)
 
-    level, _ = get_user_progress(user_id)
+        if not question:
+            return jsonify({"error": "No questions available"})
 
-    question = fetch_question(level, user_id)
 
-    if not question:
-        return jsonify({"error": "No questions available"})
+        # Tag whether options should be shuffled (LLM only)
+        source = str(question.get("source", "")).lower()
+        question["shuffle"] = False if source == "db" else True
+        print(f"Question {question['question_id']} shuffle={question['shuffle']}")
 
-    return jsonify(question)
+        return jsonify(question)
+
+    except Exception as e:
+        print("🔥 EXCEPTION in /generate-question:", str(e))
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/submit-answer", methods=["POST"])
@@ -213,7 +222,20 @@ def submit_answer():
     
     if data["answer"] == data["correct_answer"]:
         score += 10
-        new_level = min(level + 1, MAX_LEVEL)
+
+        
+        if level == MAX_LEVEL:
+            mark_question_solved(user_id, data["question_id"], 10)
+            update_user_progress(user_id, level, score)
+
+            return jsonify({
+                "correct": True,
+                "game_completed": True,
+                "score": score
+            })
+
+        
+        new_level = level + 1
 
         mark_question_solved(user_id, data["question_id"], 10)
         update_user_progress(user_id, new_level, score)
@@ -222,7 +244,7 @@ def submit_answer():
             "correct": True,
             "level": new_level,
             "score": score,
-            "level_up": new_level > level,
+            "level_up": True,
             "points": 10
         })
 
