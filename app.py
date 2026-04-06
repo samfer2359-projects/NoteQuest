@@ -302,10 +302,12 @@ def upload_file():
     file.save(filepath)
 
     try:
+        import sys
+
         subprocess.run(
-            ["python", os.path.join(BASE_DIR, "m2.py"), filepath, str(user_id)],
-            check=True
-        )
+    [sys.executable, os.path.join(BASE_DIR, "m2.py"), filepath, str(user_id)],
+    check=True
+)
     except subprocess.CalledProcessError:
         return jsonify({"success": False, "error": "Processing failed"})
 
