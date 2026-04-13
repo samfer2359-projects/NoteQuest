@@ -1,67 +1,164 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Login</title>
 
-<title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
 
-<link rel="stylesheet" href="{{ url_for('static',filename='css/theme.css') }}">
+    <style>
+        .wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-<style>
+        .card {
+            width: 420px;
+            padding: 20px;
+            border-radius: 10px;
+        }
 
-.wrapper{
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-}
+        #errorBox {
+            display: none;
+            background: #ffe5e5;
+            color: #b00020;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
 
+        .input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
 
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+        }
 
-</style>
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
 
+        .shake {
+            animation: shake 0.3s;
+        }
+
+        .link {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 
 <body>
 
 <div class="wrapper">
 
-<div class="card" style="width:420px">
+    <div class="card" id="card">
 
-<h2 class="title">Enter Quest</h2>
+        <h2 class="title">Enter Quest</h2>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="flash-container">
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">
-          {{ message }}
-        </div>
-      {% endfor %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-container">
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <div id="errorBox"></div>
+
+        <form id="loginForm" method="POST" action="/login">
+
+            <input class="input" id="email" name="email" type="email" placeholder="Email">
+
+            <input class="input" id="password" name="password" type="password" placeholder="Password">
+
+            <button class="btn-primary" type="submit">Login</button>
+
+        </form>
+
+        <a class="link" href="/signup">Create account</a>
+
     </div>
-  {% endif %}
-{% endwith %}
-
-<form method="POST" action="/login">
-
-<input class="input" type="email" name="email" placeholder="Email" required>
-
-<br><br>
-
-<input class="input" type="password" name="password" placeholder="Password" required>
-
-<br><br>
-
-<button class="btn-primary" style="width:100%">Login</button>
-
-</form>
-
-<br>
-
-<a href="/signup">Create account</a>
 
 </div>
 
-</div>
+<script>
+const form = document.getElementById("loginForm");
+const errorBox = document.getElementById("errorBox");
+const card = document.getElementById("card");
+
+function showError(msg) {
+    errorBox.style.display = "block";
+    errorBox.innerHTML = msg;
+}
+
+function clearError() {
+    errorBox.style.display = "none";
+}
+
+/* LIVE VALIDATION */
+document.getElementById("email").addEventListener("input", validate);
+document.getElementById("password").addEventListener("input", validate);
+
+function validate() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    let errors = [];
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (email && !emailPattern.test(email)) {
+        errors.push("Invalid email format");
+    }
+
+    if (password && password.length < 6) {
+        errors.push("Password seems too short");
+    }
+
+    if (errors.length > 0) {
+        showError(errors.join("<br>"));
+    } else {
+        clearError();
+    }
+}
+
+/* SUBMIT VALIDATION */
+form.addEventListener("submit", function(e) {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    let errors = [];
+
+    if (!email) errors.push("Email is required");
+    if (!password) errors.push("Password is required");
+
+    if (errors.length > 0) {
+        e.preventDefault();
+        showError(errors.join("<br>"));
+
+        card.classList.remove("shake");
+        void card.offsetWidth;
+        card.classList.add("shake");
+    }
+});
+</script>
 
 </body>
 </html>

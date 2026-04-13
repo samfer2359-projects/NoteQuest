@@ -1,3 +1,0 @@
-http://localhost:8000/generate-question?level=8&user_id=1
-
-ollama run mistral

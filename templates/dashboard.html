@@ -105,13 +105,19 @@
       </div>
 
       <a href="{{ url_for('game') }}" class="btn-primary" id="playBtn"
-         {% if user_has_notes(session['user_id']) %}
+         {% if user_has_notes %}
            style="opacity:1;pointer-events:auto;"
          {% else %}
            style="opacity:0.5;pointer-events:none;"
          {% endif %}>
         {{ 'Resume Game' if level > 1 else 'Start Game' }}
       </a>
+
+
+
+
+
+
 
       <br><br>
 

@@ -7,6 +7,7 @@ let currentQuestion = null;
 
 const MAX_LEVEL = 10;
 
+/* ---------------- ENEMIES ---------------- */
 
 class Enemy {
     constructor(x, y, speed) {
@@ -17,16 +18,19 @@ class Enemy {
         this.height = 171;
         this.sprite = '/static/images/enemy-bug.png';
     }
+
     update(dt) {
         this.x += this.speed * dt;
         if (this.x > 505) this.x = -101;
     }
+
     render() {
         const img = Resources.get(this.sprite);
         if (img) ctx.drawImage(img, this.x, this.y);
     }
 }
 
+/* ---------------- PLAYER ---------------- */
 
 class Player {
     constructor() {
@@ -36,19 +40,25 @@ class Player {
         this.sprite = '/static/images/char-boy.png';
         this.reset();
     }
+
     reset() {
         this.x = 202;
         this.y = 415;
     }
+
     update() {}
+
     render() {
         const img = Resources.get(this.sprite);
         if (img) ctx.drawImage(img, this.x, this.y);
     }
+
     handleInput(key) {
         if (quizActive || this.lives <= 0) return;
 
-        const col = 101, row = 83;
+        const col = 101;
+        const row = 83;
+
         if (key === 'left') this.x = Math.max(0, this.x - col);
         if (key === 'right') this.x = Math.min(404, this.x + col);
         if (key === 'up') this.y = Math.max(0, this.y - row);
@@ -58,6 +68,7 @@ class Player {
     }
 }
 
+/* ---------------- GEM ---------------- */
 
 class Gem {
     constructor() {
@@ -66,9 +77,15 @@ class Gem {
         this.height = 35;
         this.setPosition(-200, -200);
     }
-    setPosition(x, y) { this.x = x; this.y = y; }
+
+    setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
     render() {
         if (this.x < 0) return;
+
         const img = Resources.get(this.sprite);
         if (img) {
             const float = Math.sin(Date.now() / 300) * 5;
@@ -77,21 +94,27 @@ class Gem {
     }
 }
 
+/* ---------------- GAME OBJECTS ---------------- */
 
 const allEnemies = [
     new Enemy(0, 143, 120),
     new Enemy(150, 226, 200),
     new Enemy(300, 309, 160)
 ];
+
 const player = new Player();
 const gem = new Gem();
 
+/* ---------------- GAME LOGIC ---------------- */
 
 function spawnGem() {
-    const waterRows = [0, 1], cols = [0, 101, 202, 303, 404];
+    const waterRows = [0, 1];
+    const cols = [0, 101, 202, 303, 404];
+
     const row = waterRows[Math.floor(Math.random() * waterRows.length)];
     const x = cols[Math.floor(Math.random() * cols.length)];
     const y = row * 83 + 60;
+
     gem.setPosition(x, y);
 }
 
@@ -99,6 +122,7 @@ function scaleEnemies() {
     allEnemies.forEach(e => e.speed *= 1.1);
 }
 
+/* ---------------- UI ---------------- */
 
 function updateUI() {
     document.getElementById('lives').textContent = player.lives;
@@ -111,6 +135,7 @@ function showGameAlert(msg, type) {
     const el = document.getElementById('gameAlert');
     el.textContent = msg;
     el.className = `game-alert ${type} show`;
+
     clearTimeout(el._timer);
     el._timer = setTimeout(() => el.classList.remove('show'), 2500);
 }
@@ -119,8 +144,11 @@ function showQuizLoading(on) {
     document.getElementById('quizLoading').style.display = on ? 'flex' : 'none';
 }
 
+/* ---------------- QUIZ MODAL (FIXED) ---------------- */
+
 function showQuizModal(data) {
     quizActive = true;
+
     const modal = document.getElementById('quizModal');
     const container = document.getElementById('quizOptions');
 
@@ -129,23 +157,8 @@ function showQuizModal(data) {
 
     let options = Array.isArray(data.options) ? [...data.options] : [];
 
-    
-    console.log(`Question ${data.question_id} shuffle=${data.shuffle}`);
-    console.log("Options before shuffle:", options);
-
-    
-    if (data.shuffle) {
-    console.log("Options shuffled");
-
-    
-    for (let i = options.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [options[i], options[j]] = [options[j], options[i]];
-    }
-
-} else {
-    console.log("Preserving DB option order");
-}
+    console.log(`Question ${data.question_id}`);
+    console.log("Options:", options);
 
     options.forEach(opt => {
         const btn = document.createElement('button');
@@ -160,27 +173,39 @@ function showQuizModal(data) {
     modal.classList.add('active');
 }
 
+/* ---------------- TREASURE FLOW ---------------- */
 
 function onTreasureCollected() {
     usedHint = false;
     currentQuestion = null;
+
     showQuizLoading(true);
 
-    fetch(`/generate-question`)
-        .then(r => { if (!r.ok) throw new Error("Server error"); return r.json(); })
+    fetch('/generate-question')
+        .then(r => {
+            if (!r.ok) throw new Error("Server error");
+            return r.json();
+        })
         .then(data => {
             showQuizLoading(false);
+
             if (data.error) {
                 showGameAlert("Error loading question", "error");
                 quizActive = false;
                 spawnGem();
                 return;
             }
+
             currentQuestion = data;
             showQuizModal(data);
         })
-        .catch(() => { showQuizLoading(false); showGameAlert("Network error", "error"); });
+        .catch(() => {
+            showQuizLoading(false);
+            showGameAlert("Network error", "error");
+        });
 }
+
+/* ---------------- ANSWERS ---------------- */
 
 function submitAnswer(button, selected) {
     fetch("/submit-answer", {
@@ -188,55 +213,74 @@ function submitAnswer(button, selected) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             answer: selected,
-            correct_answer: currentQuestion.correct_answer,
             used_hint: usedHint,
             question_id: currentQuestion.question_id
         })
     })
-        .then(r => r.json())
-        .then(res => {
-            if (!res || res.error) { showGameAlert("Server error", "error"); return; }
-            handleAnswerResponse(button, selected, res);
-        });
+    .then(r => r.json())
+    .then(res => {
+        if (!res || res.error) {
+            showGameAlert("Server error", "error");
+            return;
+        }
+        handleAnswerResponse(button, res);
+    });
 }
 
-function handleAnswerResponse(btn, selected, res) {
+function handleAnswerResponse(btn, res) {
     const hintEl = document.getElementById('quizHint');
     const statusEl = document.getElementById('quizStatus');
 
     if (res.correct) {
-        btn.classList.add('correct');
-        score = res.score;
-        level = Math.min(res.level || level, MAX_LEVEL);
-        totalGems++;
-        updateUI();
+    btn.classList.add('correct');
 
+    score = res.score;
+    level = Math.min(res.level || level, MAX_LEVEL);
+    totalGems++;
+
+    updateUI();
+
+    // ✅ ADD THIS LINE
+    showGameAlert("✅ Correct answer! +10 points 🎉", "success");
+
+    if (res.game_completed || level >= MAX_LEVEL) {
         closeQuiz(true);
-
-        
-        if (res.game_completed) showVictoryScreen();
+        showVictoryScreen();
         return;
     }
 
-    
+    closeQuiz(true);
+    return;
+}
+
+    // ❌ WRONG ANSWER
     btn.classList.add('wrong');
+
     if (res.action === "hint") {
         usedHint = true;
-        hintEl.textContent = "💡 " + currentQuestion.hint;
+
+        hintEl.textContent = "💡 " + (currentQuestion?.hint || "");
         statusEl.textContent = "Try again using the hint!";
         statusEl.className = "quiz-status wrong-status";
+
         btn.disabled = true;
     } else if (res.action === "restart") {
         score = res.score;
         player.lives--;
+
         updateUI();
+
         showGameAlert("❌ Wrong again! Restarting level", "error");
+
         closeQuiz(false);
         resetLevel();
+
         if (player.lives <= 0) triggerGameOver();
     }
 }
 
+
+/* ---------------- END SCREENS ---------------- */
 
 function showVictoryScreen() {
     document.getElementById('victoryScore').textContent = score;
@@ -248,11 +292,16 @@ function triggerGameOver() {
     document.getElementById('gameOverScreen').classList.add('active');
 }
 
+/* ---------------- GAME STATE ---------------- */
 
 function closeQuiz(success) {
     document.getElementById('quizModal').classList.remove('active');
     quizActive = false;
-    if (success && level < MAX_LEVEL) spawnGem();
+
+    if (success && level < MAX_LEVEL) {
+        spawnGem();
+    }
+
     player.reset();
 }
 
@@ -268,12 +317,22 @@ function restartGame() {
         .catch(() => alert("Failed to reset game"));
 }
 
+/* ---------------- INPUT ---------------- */
 
 document.addEventListener('keyup', function (e) {
-    const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
-    if (map[e.key]) player.handleInput(map[e.key]);
+    const map = {
+        ArrowLeft: 'left',
+        ArrowRight: 'right',
+        ArrowUp: 'up',
+        ArrowDown: 'down'
+    };
+
+    if (map[e.key]) {
+        player.handleInput(map[e.key]);
+    }
 });
 
+/* ---------------- INIT ---------------- */
 
 spawnGem();
 updateUI();

@@ -79,3 +79,6 @@ ALTER TABLE Questions ADD COLUMN source VARCHAR(20) DEFAULT 'db';
 
 ALTER TABLE Questions
 ALTER COLUMN options TYPE json USING options::json;
+
+ALTER TABLE Concepts
+ADD COLUMN created_at TIMESTAMP DEFAULT NOW();

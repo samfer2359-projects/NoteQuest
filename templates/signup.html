@@ -1,75 +1,281 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Signup</title>
 
-<title>Signup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
 
-<link rel="stylesheet" href="{{ url_for('static',filename='css/theme.css') }}">
+    <style>
+        .wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-<style>
+        .card {
+            width: 420px;
+            padding: 20px;
+            border-radius: 10px;
+        }
 
-.wrapper{
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-}
+        #errorBox {
+            display: none;
+            background: #ffe5e5;
+            color: #b00020;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
 
+        /* PASSWORD STRENGTH */
+        .strength-bar {
+            height: 6px;
+            border-radius: 5px;
+            margin-top: 5px;
+            background: #ddd;
+            overflow: hidden;
+        }
 
-</style>
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: 0.3s;
+        }
 
+        .weak { background: red; width: 33%; }
+        .medium { background: orange; width: 66%; }
+        .strong { background: green; width: 100%; }
+
+        .strength-text {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* SHAKE ANIMATION */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .shake {
+            animation: shake 0.3s;
+        }
+
+        .input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 5px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 
 <body>
 
 <div class="wrapper">
 
-<div class="card" style="width:420px">
+    <div class="card" id="card">
 
-<h2 class="title">Create Character</h2>
+        <h2 class="title">Create Character</h2>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="flash-container">
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">
-          {{ message }}
-        </div>
-      {% endfor %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-container">
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <div id="errorBox"></div>
+
+        <form id="signupForm" method="POST" action="/signup">
+
+            <input class="input" id="username" name="username" placeholder="Username">
+            <br>
+
+            <input class="input" id="email" name="email" type="email" placeholder="Email">
+            <br>
+
+            <input class="input" id="password" name="password" type="password" placeholder="Password">
+            
+            <!-- strength meter -->
+            <div class="strength-bar">
+                <div id="strengthFill" class="strength-fill"></div>
+            </div>
+            <div id="strengthText" class="strength-text"></div>
+            <div id="suggestions" class="strength-text"></div>
+
+            <br>
+
+            <input class="input" id="confirm_password" name="confirm_password" type="password" placeholder="Confirm Password">
+            <br>
+
+            <button class="btn-primary" type="submit">Start Adventure</button>
+
+        </form>
+
+        <p style="text-align:center; margin-top:10px;">
+            Already have a character? <a href="/login">Login</a>
+        </p>
+
     </div>
-  {% endif %}
-{% endwith %}
-
-<form method="POST" action="/signup">
-
-<input class="input" name="username" placeholder="Username" required>
-
-<br><br>
-
-<input class="input" name="email" placeholder="Email" required>
-
-<br><br>
-
-<input class="input" name="password" type="password" placeholder="Password" required>
-
-<br><br>
-
-<input class="input" name="confirm_password" type="password" placeholder="Confirm Password" required>
-
-<br><br>
-
-<button class="btn-primary" style="width:100%">Start Adventure</button>
-
-<p style="text-align:center; margin-top:10px;">
-  Already have a character? 
-  <a href="/login" class="link">Login here</a>
-</p>
-
-</form>
 
 </div>
 
-</div>
+<script>
+const form = document.getElementById("signupForm");
+const errorBox = document.getElementById("errorBox");
+const card = document.getElementById("card");
+
+const password = document.getElementById("password");
+const strengthFill = document.getElementById("strengthFill");
+const strengthText = document.getElementById("strengthText");
+
+/* ---------------- REAL-TIME VALIDATION ---------------- */
+
+document.getElementById("username").addEventListener("input", validateLive);
+document.getElementById("email").addEventListener("input", validateLive);
+document.getElementById("confirm_password").addEventListener("input", validateLive);
+
+/* ---------------- PASSWORD STRENGTH ---------------- */
+
+password.addEventListener("input", function () {
+    const val = password.value;
+
+    let strength = 0;
+    let suggestions = [];
+
+    if (val.length === 0) {
+        strengthFill.style.width = "0%";
+        strengthText.textContent = "";
+        suggestions = [];
+        document.getElementById("suggestions").innerHTML = "";
+        return;
+    }
+
+    // rules
+    if (val.length >= 6) strength++;
+    else suggestions.push("👉 Use at least 6–8 characters");
+
+    if (/[A-Z]/.test(val)) strength++;
+    else suggestions.push("👉 Add uppercase letters (A-Z)");
+
+    if (/[0-9]/.test(val)) strength++;
+    else suggestions.push("👉 Add numbers (0-9)");
+
+    if (/[^A-Za-z0-9]/.test(val)) strength++;
+    else suggestions.push("👉 Add special characters (!@#$)");
+
+    // strength bar reset
+    strengthFill.className = "strength-fill";
+
+    if (strength <= 1) {
+        strengthFill.classList.add("weak");
+        strengthText.textContent = "Weak 🔴";
+    }
+    else if (strength === 2 || strength === 3) {
+        strengthFill.classList.add("medium");
+        strengthText.textContent = "Medium 🟠";
+    }
+    else {
+        strengthFill.classList.add("strong");
+        strengthText.textContent = "Strong 🟢";
+    }
+
+    // show suggestions
+    const sugBox = document.getElementById("suggestions");
+
+    if (suggestions.length > 0) {
+        sugBox.innerHTML = suggestions.join("<br>");
+        sugBox.style.color = "#b00020";
+    } else {
+        sugBox.innerHTML = "✅ Strong password!";
+        sugBox.style.color = "green";
+    }
+
+    validateLive();
+});
+
+/* ---------------- LIVE VALIDATION ---------------- */
+
+function validateLive() {
+    const username = document.getElementById("username").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const confirm = document.getElementById("confirm_password").value;
+
+    let errors = [];
+
+    if (username && username.length < 3) {
+        errors.push("Username must be at least 3 characters");
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailPattern.test(email)) {
+        errors.push("Invalid email format");
+    }
+
+    if (confirm && confirm !== password.value) {
+        errors.push("Passwords do not match");
+    }
+
+    showErrors(errors);
+}
+
+/* ---------------- SHOW ERRORS ---------------- */
+
+function showErrors(errors) {
+    if (errors.length > 0) {
+        errorBox.style.display = "block";
+        errorBox.innerHTML = errors.join("<br>");
+    } else {
+        errorBox.style.display = "none";
+    }
+}
+
+/* ---------------- FORM SUBMIT ---------------- */
+
+form.addEventListener("submit", function (e) {
+    let errors = [];
+
+    const username = document.getElementById("username").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const confirm = document.getElementById("confirm_password").value;
+
+    if (username.length < 3) errors.push("Username must be at least 3 characters");
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) errors.push("Enter a valid email");
+
+    if (password.value.length < 6) errors.push("Password too weak");
+
+    if (password.value !== confirm) errors.push("Passwords do not match");
+
+    if (errors.length > 0) {
+        e.preventDefault();
+
+        showErrors(errors);
+
+        // shake animation
+        card.classList.remove("shake");
+        void card.offsetWidth;
+        card.classList.add("shake");
+    }
+});
+</script>
 
 </body>
 </html>

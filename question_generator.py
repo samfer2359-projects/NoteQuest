@@ -1,7 +1,11 @@
 import psycopg2
 import random
-import requests
 import json
+import os
+from groq import Groq
+
+# ================= CONFIG =================
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 TOPIC = "DBMS"
 
@@ -13,216 +17,249 @@ DB_CONFIG = {
     "port": "5432"
 }
 
-
+# ================= DB =================
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
 
-
-def get_difficulty(level):
-    return level
-
 def get_user_concepts(user_id):
     conn = connect_db()
     cur = conn.cursor()
-    cur.execute("SELECT concept_text FROM Concepts WHERE user_id=%s", (user_id,))
-    concepts = [row[0] for row in cur.fetchall()]
+
+    cur.execute(
+        "SELECT concept_text FROM Concepts WHERE user_id=%s",
+        (user_id,)
+    )
+
+    concepts = [row[0] for row in cur.fetchall() if row[0]]
+
     cur.close()
     conn.close()
+
     return concepts
 
 
-
-def get_unused_question(user_id, difficulty):
-    conn = connect_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT q.question_id, q.riddle_text, q.options, q.correct_answer, q.hint
-        FROM Questions q
-        LEFT JOIN Progress p
-        ON q.question_id = p.question_id AND p.user_id = %s
-        WHERE (p.solved IS NULL OR p.solved = FALSE)
-        AND q.difficulty = %s
-        AND q.source = 'db'
-        ORDER BY RANDOM()
-        LIMIT 1
-    """, (user_id, difficulty))
-
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    if row:
-        import json
-        options = row[2]
-        if isinstance(options, str):
-            options = json.loads(options)
-        print("OPTIONS FROM DB:", options)   
-        return {
-        "question_id": row[0],
-        "question": row[1],
-        "options": options,
-        "correct_answer": row[3],
-        "hint": row[4] or "",
-        "source": "db",
-        "shuffle": False
-    }
-
-    return None
-
-def get_any_question(difficulty, concept):
-    conn = connect_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT question_id, riddle_text, options, correct_answer, hint
-        FROM Questions
-        WHERE difficulty = %s
-        AND concept ILIKE %s
-        AND source = 'db'
-        ORDER BY RANDOM()
-        LIMIT 1
-    """, (difficulty, "%" + concept + "%"))
-
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    if row:
-        import json
-        options = row[2]
-        if isinstance(options, str):
-            options = json.loads(options)
-        print("OPTIONS FROM DB:", options)   # 👈 ADD HERE ALSO
-        return {
-        "question_id": row[0],
-        "question": row[1],
-        "options": options,
-        "correct_answer": row[3],
-        "hint": row[4] or "",
-        "source": "db",
-        "shuffle": False
-    }
-
-    return None
+def get_difficulty(level):
+    # safe scaling (you can later improve this)
+    return max(1, min(level, 10))
 
 
-
-def mark_question_solved(user_id, question_id, score):
-    conn = connect_db()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO Progress (user_id, question_id, solved, score_awarded)
-        VALUES (%s,%s,TRUE,%s)
-        ON CONFLICT (user_id, question_id)
-        DO UPDATE SET solved=TRUE
-    """, (user_id, question_id, score))
-    conn.commit()
-    cur.close()
-    conn.close()
-
-
-
-def store_question(data, difficulty, concept):
-    conn = connect_db()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO Questions
-        (topic, riddle_text, options, correct_answer, hint, difficulty, concept, source)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-        ON CONFLICT (riddle_text, topic) DO NOTHING
-        RETURNING question_id
-    """, (
-        TOPIC,
-        data["question"],
-        json.dumps(data["options"]),
-        data["correct_answer"],
-        data["hint"],
-        difficulty,
-        concept,
-        "llm"
-    ))
-
-    result = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    if result:
-        return result[0]
-    return None
-
-
-
-def generate_llm_question(concept, difficulty):
+# ================= GROQ =================
+def generate_groq_question(concept, difficulty):
     prompt = f"""
-Generate a DBMS MCQ.
+You are generating a DBMS multiple choice question.
+
 Concept: {concept}
 Difficulty: {difficulty}
 
-Return JSON:
+STRICT RULES:
+- 4 options only
+- correct_answer must EXACTLY match one option
+- no A/B/C/D labels
+- no explanation text inside options
+
+Return ONLY valid JSON:
+
 {{
-    "question": "...",
-    "options": ["A","B","C","D"],
-    "correct_answer": "...",
-    "hint": "..."
+  "question": "string",
+  "options": ["opt1", "opt2", "opt3", "opt4"],
+  "correct_answer": "one of the options",
+  "hint": "short helpful hint"
 }}
 """
+
     try:
-        resp = requests.post(
-            "http://localhost:11434/api/generate",
-            json={"model": "mistral", "prompt": prompt, "stream": False},
-            timeout=60
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
         )
-        raw = resp.json().get("response", "")
-        return manual_parse_json(raw)
+
+        raw = response.choices[0].message.content.strip()
+        return parse_json(raw)
+
     except Exception as e:
-        print("LLM ERROR:", e)
+        print("❌ GROQ ERROR:", e)
         return None
 
-def manual_parse_json(raw):
+
+def parse_json(raw):
     try:
-        raw = raw.replace("'", '"')
+        raw = raw.strip()
+
+        # safer cleanup for LLM output
+        if raw.startswith("```"):
+            raw = raw.replace("```json", "").replace("```", "").strip()
+
         data = json.loads(raw)
-        if "question" in data and "options" in data and isinstance(data["options"], list) and len(data["options"]) == 4:
-            data["shuffle"] = True  # LLM questions can shuffle
+
+        # strict validation (VERY IMPORTANT for frontend stability)
+        if (
+            isinstance(data, dict)
+            and "question" in data
+            and isinstance(data.get("options"), list)
+            and len(data["options"]) == 4
+            and "correct_answer" in data
+            and "hint" in data
+        ):
             return data
+
     except Exception as e:
-        print("JSON parse error:", e)
+        print("❌ JSON PARSE ERROR:", e)
+
     return None
 
 
+# ================= STORE =================
+def store_question(data, difficulty, concept):
+    conn = connect_db()
+    cur = conn.cursor()
 
+    try:
+        cur.execute("""
+            INSERT INTO Questions
+            (topic, riddle_text, options, correct_answer, hint, difficulty, concept, source)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            ON CONFLICT (riddle_text, topic) DO NOTHING
+            RETURNING question_id
+        """, (
+            TOPIC,
+            data["question"],
+            json.dumps(data["options"]),
+            data["correct_answer"],
+            data.get("hint", ""),
+            difficulty,
+            concept,
+            "llm"
+        ))
+
+        row = cur.fetchone()
+        conn.commit()
+
+        return row[0] if row else None
+
+    except Exception as e:
+        print("❌ DB INSERT ERROR:", e)
+        conn.rollback()
+        return None
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ================= FETCH HELPERS =================
+def normalize_question(row):
+    options = row[2]
+
+    if isinstance(options, str):
+        options = json.loads(options)
+
+    return {
+        "question_id": row[0],
+        "question": row[1],
+        "options": options,
+        "correct_answer": row[3],
+        "hint": row[4] or "",
+    }
+
+
+def get_cached_llm_question(difficulty):
+    conn = connect_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT question_id, riddle_text, options, correct_answer, hint
+        FROM Questions
+        WHERE source='llm'
+        AND difficulty=%s
+        ORDER BY RANDOM()
+        LIMIT 1
+    """, (difficulty,))
+
+    row = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return normalize_question(row) if row else None
+
+
+def get_db_question(difficulty):
+    conn = connect_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT question_id, riddle_text, options, correct_answer, hint
+        FROM Questions
+        WHERE source='db'
+        AND difficulty=%s
+        ORDER BY RANDOM()
+        LIMIT 1
+    """, (difficulty,))
+
+    row = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return normalize_question(row) if row else None
+
+
+# ================= MAIN FLOW =================
 def fetch_question(level, user_id):
     difficulty = get_difficulty(level)
     concepts = get_user_concepts(user_id)
 
-    
-    if concepts and level < 10:
-        sample_concepts = random.sample(concepts, min(3, len(concepts)))
-        for concept in sample_concepts:
-            qdata = generate_llm_question(concept, difficulty)
+    # 1. TRY GENERATION
+    if concepts:
+        sampled = random.sample(concepts, min(3, len(concepts)))
+
+        for concept in sampled:
+            qdata = generate_groq_question(concept, difficulty)
+
             if qdata:
                 qid = store_question(qdata, difficulty, concept)
+
                 if qid:
                     qdata["question_id"] = qid
+                    print("🤖 GENERATED QUESTION")
                     return qdata
 
-    
-    q = get_unused_question(user_id, difficulty)
-    if q:
-        return q
+    # 2. CACHE FALLBACK
+    cached = get_cached_llm_question(difficulty)
+    if cached:
+        print("⚡ CACHE USED")
+        return cached
 
-    
-    if concepts:
-        for concept in concepts:
-            q = get_any_question(difficulty, concept)
-            if q:
-                return q
-
-    
-    q = get_any_question(difficulty, "%")
-    if q:
-        return q
+    # 3. DB FALLBACK
+    db_q = get_db_question(difficulty)
+    if db_q:
+        print("📦 DB FALLBACK USED")
+        return db_q
 
     return None
+
+
+# ================= PROGRESS =================
+def mark_question_solved(user_id, question_id, score):
+    conn = connect_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            INSERT INTO Progress (user_id, question_id, solved, score_awarded)
+            VALUES (%s,%s,TRUE,%s)
+            ON CONFLICT (user_id, question_id)
+            DO UPDATE SET solved=TRUE
+        """, (user_id, question_id, score))
+
+        conn.commit()
+
+    except Exception as e:
+        print("❌ PROGRESS ERROR:", e)
+        conn.rollback()
+
+    finally:
+        cur.close()
+        conn.close()

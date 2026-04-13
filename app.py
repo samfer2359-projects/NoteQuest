@@ -6,7 +6,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from question_generator import fetch_question, mark_question_solved
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'txt', 'docx'}
@@ -30,7 +29,6 @@ app.secret_key = 'notequest_secret_key'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
@@ -38,8 +36,10 @@ def connect_db():
 def get_user_progress(user_id):
     conn = connect_db()
     cur = conn.cursor()
+
     cur.execute("SELECT level, score FROM Users WHERE user_id=%s", (user_id,))
     data = cur.fetchone()
+
     cur.close()
     conn.close()
     return data if data else (1, 0)
@@ -47,12 +47,15 @@ def get_user_progress(user_id):
 
 def update_user_progress(user_id, level, score):
     level = min(level, MAX_LEVEL)
+
     conn = connect_db()
     cur = conn.cursor()
+
     cur.execute(
         "UPDATE Users SET level=%s, score=%s WHERE user_id=%s",
         (level, score, user_id)
     )
+
     conn.commit()
     cur.close()
     conn.close()
@@ -61,14 +64,16 @@ def update_user_progress(user_id, level, score):
 def user_has_notes(user_id):
     conn = connect_db()
     cur = conn.cursor()
+
     cur.execute("SELECT 1 FROM Concepts WHERE user_id=%s LIMIT 1", (user_id,))
     exists = cur.fetchone() is not None
+
     cur.close()
     conn.close()
     return exists
 
 
-
+# ---------------- ROUTES ----------------
 @app.route("/")
 def home():
     return render_template("welcome.html")
@@ -87,7 +92,7 @@ def dashboard():
         username=session['username'],
         level=level,
         score=score,
-        user_has_notes=user_has_notes
+        user_has_notes=user_has_notes(user_id)
     )
 
 
@@ -95,35 +100,49 @@ def dashboard():
 def game():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
+
     user_id = session['user_id']
 
     if not user_has_notes(user_id):
         flash("Upload notes first!", "error")
         return redirect(url_for('dashboard'))
 
-    return render_template(
-    "index.html",
-    USER_ID=user_id,
-    LEVEL=get_user_progress(user_id)[0],
-    SCORE=get_user_progress(user_id)[1]
-)
+    level, score = get_user_progress(user_id)
 
+    return render_template(
+        "index.html",
+        USER_ID=user_id,
+        LEVEL=level,
+        SCORE=score
+    )
 
 
 @app.route("/signup", methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
         password = request.form.get('password')
         confirm = request.form.get('confirm_password')
 
+        # 1. required fields
+        if not username or not email:
+            flash("Username and Email are required", "error")
+            return redirect(url_for('signup'))
+
+        # 2. PASSWORD MUST EXIST (IMPORTANT FIX)
+        if not password or password.strip() == "":
+            flash("Password is required", "error")
+            return redirect(url_for('signup'))
+
+        # 3. confirm password check
         if password != confirm:
             flash("Passwords do not match", "error")
             return redirect(url_for('signup'))
 
-        hashed = generate_password_hash(password)
+        # 4. weak password warning only (DO NOT BLOCK)
+        if len(password) < 6:
+            flash("⚠️ Weak password, but account will still be created", "warning")
 
         conn = connect_db()
         cur = conn.cursor()
@@ -131,7 +150,11 @@ def signup():
         cur.execute("SELECT 1 FROM Users WHERE email=%s", (email,))
         if cur.fetchone():
             flash("User already exists", "error")
+            cur.close()
+            conn.close()
             return redirect(url_for('login'))
+
+        hashed = generate_password_hash(password)
 
         cur.execute(
             "INSERT INTO Users(username,email,password,level,score) VALUES(%s,%s,%s,1,0)",
@@ -142,7 +165,7 @@ def signup():
         cur.close()
         conn.close()
 
-        flash("Signup successful! Please log in.", "success")
+        flash("Signup successful!", "success")
         return redirect(url_for('login'))
 
     return render_template("signup.html")
@@ -151,28 +174,41 @@ def signup():
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = request.form.get('email', '').strip()
         password = request.form.get('password')
+
+        # ✅ validation (must be inside POST block)
+        if not email or not password:
+            flash("Email and password are required", "error")
+            return redirect(url_for('login'))
 
         conn = connect_db()
         cur = conn.cursor()
-        cur.execute("SELECT user_id, username, password FROM Users WHERE email=%s", (email,))
+
+        cur.execute(
+            "SELECT user_id, username, password FROM Users WHERE email=%s",
+            (email,)
+        )
         user = cur.fetchone()
+
         cur.close()
         conn.close()
 
         if not user:
-            flash("User not registered. Please sign up first.", "error")
+            flash("User not found", "error")
             return redirect(url_for('signup'))
+
         if not check_password_hash(user[2], password):
-            flash("Incorrect password. Try again.", "error")
+            flash("Wrong password", "error")
             return redirect(url_for('login'))
 
+        # ✅ login success
         session['user_id'] = user[0]
         session['username'] = user[1]
 
         return redirect(url_for('dashboard'))
 
+    # GET request → show login page
     return render_template("login.html")
 
 
@@ -182,11 +218,11 @@ def logout():
     return redirect(url_for("home"))
 
 
-
 @app.route("/generate-question")
 def generate_question():
     try:
         user_id = session.get('user_id')
+
         if not user_id:
             return jsonify({"error": "Not logged in"}), 401
 
@@ -196,16 +232,12 @@ def generate_question():
         if not question:
             return jsonify({"error": "No questions available"})
 
-
-        # Tag whether options should be shuffled (LLM only)
-        source = str(question.get("source", "")).lower()
-        question["shuffle"] = False if source == "db" else True
-        print(f"Question {question['question_id']} shuffle={question['shuffle']}")
+        print(f"Question {question['question_id']} loaded")
 
         return jsonify(question)
 
     except Exception as e:
-        print("🔥 EXCEPTION in /generate-question:", str(e))
+        print("ERROR:", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -217,48 +249,58 @@ def submit_answer():
     if not user_id:
         return jsonify({"error": "Not logged in"}), 401
 
+    question_id = data.get("question_id")
+    selected_answer = data.get("answer")
+
+    conn = connect_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT correct_answer
+        FROM Questions
+        WHERE question_id=%s
+    """, (question_id,))
+
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "Invalid question"}), 400
+
+    correct_answer = row[0].strip()
+    selected_answer = (selected_answer or "").strip()
+
     level, score = get_user_progress(user_id)
 
-    
-    if data["answer"] == data["correct_answer"]:
+    # ✅ CORRECT ANSWER PATH
+    if selected_answer == correct_answer:
         score += 10
+        new_level = min(level + 1, MAX_LEVEL)
 
-        
-        if level == MAX_LEVEL:
-            mark_question_solved(user_id, data["question_id"], 10)
-            update_user_progress(user_id, level, score)
-
-            return jsonify({
-                "correct": True,
-                "game_completed": True,
-                "score": score
-            })
-
-        
-        new_level = level + 1
-
-        mark_question_solved(user_id, data["question_id"], 10)
+        mark_question_solved(user_id, question_id, 10)
         update_user_progress(user_id, new_level, score)
 
         return jsonify({
             "correct": True,
-            "level": new_level,
             "score": score,
-            "level_up": True,
-            "points": 10
+            "level": new_level,
+            "game_completed": new_level >= MAX_LEVEL
         })
 
-    
+    # ❌ WRONG ANSWER PATH
     if not data.get("used_hint"):
-        return jsonify({"correct": False, "action": "hint"})
+        return jsonify({
+            "correct": False,
+            "action": "hint",
+            "hint": "Check the concept carefully."
+        })
 
-    
     return jsonify({
         "correct": False,
         "action": "restart",
         "score": score
     })
-
 
 
 @app.route("/reset-progress", methods=["POST"])
@@ -269,13 +311,14 @@ def reset_progress():
 
     conn = connect_db()
     cur = conn.cursor()
-    cur.execute("DELETE FROM UserQuestionProgress WHERE user_id=%s", (user_id,))
+
+    cur.execute("DELETE FROM Progress WHERE user_id=%s", (user_id,))
+
     conn.commit()
     cur.close()
     conn.close()
 
     return jsonify({"success": True})
-
 
 
 def allowed_file(filename):
@@ -288,26 +331,26 @@ def upload_file():
 
     if not user_id:
         return jsonify({"success": False, "error": "Not logged in"}), 401
-    
+
     if 'file' not in request.files:
         return jsonify({"success": False, "error": "No file selected"})
 
     file = request.files['file']
 
     if file.filename == '' or not allowed_file(file.filename):
-        return jsonify({"success": False, "error": "Invalid file type"})
+        return jsonify({"success": False, "error": "Invalid file"})
 
     filename = f"{user_id}_{secure_filename(file.filename)}"
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
     file.save(filepath)
 
     try:
         import sys
-
         subprocess.run(
-    [sys.executable, os.path.join(BASE_DIR, "m2.py"), filepath, str(user_id)],
-    check=True
-)
+            [sys.executable, os.path.join(BASE_DIR, "m2.py"), filepath, str(user_id)],
+            check=True
+        )
     except subprocess.CalledProcessError:
         return jsonify({"success": False, "error": "Processing failed"})
 

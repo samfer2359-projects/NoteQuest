@@ -6,7 +6,7 @@
 
     function main(){
         const now = Date.now();
-        const dt = (now-lastTime)/1000.0;
+        const dt = lastTime ? (now - lastTime) / 1000.0 : 0;
         update(dt);
         render();
         lastTime = now;
