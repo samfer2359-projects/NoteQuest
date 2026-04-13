@@ -73,7 +73,7 @@ def user_has_notes(user_id):
     return exists
 
 
-# ---------------- ROUTES ----------------
+#  ROUTES 
 @app.route("/")
 def home():
     return render_template("welcome.html")
@@ -130,7 +130,7 @@ def signup():
             flash("Username and Email are required", "error")
             return redirect(url_for('signup'))
 
-        # 2. PASSWORD MUST EXIST (IMPORTANT FIX)
+        # 2. PASSWORD MUST EXIST 
         if not password or password.strip() == "":
             flash("Password is required", "error")
             return redirect(url_for('signup'))
@@ -140,7 +140,7 @@ def signup():
             flash("Passwords do not match", "error")
             return redirect(url_for('signup'))
 
-        # 4. weak password warning only (DO NOT BLOCK)
+        # 4. weak password warning only 
         if len(password) < 6:
             flash("⚠️ Weak password, but account will still be created", "warning")
 
@@ -177,7 +177,7 @@ def login():
         email = request.form.get('email', '').strip()
         password = request.form.get('password')
 
-        # ✅ validation (must be inside POST block)
+        # validation 
         if not email or not password:
             flash("Email and password are required", "error")
             return redirect(url_for('login'))
@@ -196,20 +196,63 @@ def login():
 
         if not user:
             flash("User not found", "error")
-            return redirect(url_for('signup'))
+            return redirect(url_for('login'))
 
         if not check_password_hash(user[2], password):
             flash("Wrong password", "error")
             return redirect(url_for('login'))
 
-        # ✅ login success
+        #  login success
         session['user_id'] = user[0]
         session['username'] = user[1]
 
         return redirect(url_for('dashboard'))
 
-    # GET request → show login page
+
     return render_template("login.html")
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email").strip()
+        new_password = request.form.get("password")
+        confirm = request.form.get("confirm_password")
+
+        if not email or not new_password:
+            flash("All fields are required", "error")
+            return redirect(url_for("forgot_password"))
+
+        if new_password != confirm:
+            flash("Passwords do not match", "error")
+            return redirect(url_for("forgot_password"))
+
+        conn = connect_db()
+        cur = conn.cursor()
+
+        cur.execute("SELECT user_id FROM Users WHERE email=%s", (email,))
+        user = cur.fetchone()
+
+        if not user:
+            flash("Email not registered", "error")
+            cur.close()
+            conn.close()
+            return redirect(url_for("forgot_password"))
+
+        hashed = generate_password_hash(new_password)
+
+        cur.execute(
+            "UPDATE Users SET password=%s WHERE email=%s",
+            (hashed, email)
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("Password updated successfully! Please login.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html")
 
 
 @app.route("/logout", methods=["POST"])
@@ -273,10 +316,17 @@ def submit_answer():
 
     level, score = get_user_progress(user_id)
 
-    # ✅ CORRECT ANSWER PATH
+    #  CORRECT ANSWER PATH
     if selected_answer == correct_answer:
         score += 10
-        new_level = min(level + 1, MAX_LEVEL)
+
+    
+        if level >= MAX_LEVEL:
+            game_completed = True
+            new_level = MAX_LEVEL
+        else:
+            new_level = level + 1
+            game_completed = False
 
         mark_question_solved(user_id, question_id, 10)
         update_user_progress(user_id, new_level, score)
@@ -285,10 +335,10 @@ def submit_answer():
             "correct": True,
             "score": score,
             "level": new_level,
-            "game_completed": new_level >= MAX_LEVEL
+            "game_completed": game_completed
         })
 
-    # ❌ WRONG ANSWER PATH
+    #  WRONG ANSWER PATH
     if not data.get("used_hint"):
         return jsonify({
             "correct": False,

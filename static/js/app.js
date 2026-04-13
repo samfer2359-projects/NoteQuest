@@ -7,7 +7,7 @@ let currentQuestion = null;
 
 const MAX_LEVEL = 10;
 
-/* ---------------- ENEMIES ---------------- */
+/*  ENEMIES  */
 
 class Enemy {
     constructor(x, y, speed) {
@@ -30,7 +30,7 @@ class Enemy {
     }
 }
 
-/* ---------------- PLAYER ---------------- */
+/*  PLAYER  */
 
 class Player {
     constructor() {
@@ -68,7 +68,7 @@ class Player {
     }
 }
 
-/* ---------------- GEM ---------------- */
+/*  GEM  */
 
 class Gem {
     constructor() {
@@ -94,7 +94,7 @@ class Gem {
     }
 }
 
-/* ---------------- GAME OBJECTS ---------------- */
+/*  GAME OBJECTS  */
 
 const allEnemies = [
     new Enemy(0, 143, 120),
@@ -105,7 +105,7 @@ const allEnemies = [
 const player = new Player();
 const gem = new Gem();
 
-/* ---------------- GAME LOGIC ---------------- */
+/*  GAME LOGIC  */
 
 function spawnGem() {
     const waterRows = [0, 1];
@@ -122,7 +122,7 @@ function scaleEnemies() {
     allEnemies.forEach(e => e.speed *= 1.1);
 }
 
-/* ---------------- UI ---------------- */
+/*  UI  */
 
 function updateUI() {
     document.getElementById('lives').textContent = player.lives;
@@ -144,7 +144,7 @@ function showQuizLoading(on) {
     document.getElementById('quizLoading').style.display = on ? 'flex' : 'none';
 }
 
-/* ---------------- QUIZ MODAL (FIXED) ---------------- */
+/*  QUIZ MODAL   */
 
 function showQuizModal(data) {
     quizActive = true;
@@ -173,7 +173,7 @@ function showQuizModal(data) {
     modal.classList.add('active');
 }
 
-/* ---------------- TREASURE FLOW ---------------- */
+/*  TREASURE FLOW  */
 
 function onTreasureCollected() {
     usedHint = false;
@@ -205,7 +205,7 @@ function onTreasureCollected() {
         });
 }
 
-/* ---------------- ANSWERS ---------------- */
+/*  ANSWERS  */
 
 function submitAnswer(button, selected) {
     fetch("/submit-answer", {
@@ -232,6 +232,7 @@ function handleAnswerResponse(btn, res) {
     const statusEl = document.getElementById('quizStatus');
 
     if (res.correct) {
+    
     btn.classList.add('correct');
 
     score = res.score;
@@ -240,20 +241,21 @@ function handleAnswerResponse(btn, res) {
 
     updateUI();
 
-    // ✅ ADD THIS LINE
+    
     showGameAlert("✅ Correct answer! +10 points 🎉", "success");
 
-    if (res.game_completed || level >= MAX_LEVEL) {
+    if (res.game_completed) {
         closeQuiz(true);
         showVictoryScreen();
         return;
     }
 
     closeQuiz(true);
+    console.log("Level:", level, "Game Completed:", res.game_completed);
     return;
 }
 
-    // ❌ WRONG ANSWER
+    
     btn.classList.add('wrong');
 
     if (res.action === "hint") {
@@ -280,7 +282,7 @@ function handleAnswerResponse(btn, res) {
 }
 
 
-/* ---------------- END SCREENS ---------------- */
+/* END SCREENS */
 
 function showVictoryScreen() {
     document.getElementById('victoryScore').textContent = score;
@@ -292,13 +294,13 @@ function triggerGameOver() {
     document.getElementById('gameOverScreen').classList.add('active');
 }
 
-/* ---------------- GAME STATE ---------------- */
+/*  GAME STATE  */
 
 function closeQuiz(success) {
     document.getElementById('quizModal').classList.remove('active');
     quizActive = false;
 
-    if (success && level < MAX_LEVEL) {
+    if (success) {
         spawnGem();
     }
 
@@ -317,7 +319,7 @@ function restartGame() {
         .catch(() => alert("Failed to reset game"));
 }
 
-/* ---------------- INPUT ---------------- */
+/*  INPUT  */
 
 document.addEventListener('keyup', function (e) {
     const map = {
@@ -332,7 +334,7 @@ document.addEventListener('keyup', function (e) {
     }
 });
 
-/* ---------------- INIT ---------------- */
+/*  INIT  */
 
 spawnGem();
 updateUI();

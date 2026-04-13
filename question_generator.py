@@ -4,7 +4,7 @@ import json
 import os
 from groq import Groq
 
-# ================= CONFIG =================
+# CONFIG 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 TOPIC = "DBMS"
@@ -17,7 +17,7 @@ DB_CONFIG = {
     "port": "5432"
 }
 
-# ================= DB =================
+#  DB 
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
@@ -44,7 +44,7 @@ def get_difficulty(level):
     return max(1, min(level, 10))
 
 
-# ================= GROQ =================
+#  GROQ 
 def generate_groq_question(concept, difficulty):
     prompt = f"""
 You are generating a DBMS multiple choice question.
@@ -79,7 +79,7 @@ Return ONLY valid JSON:
         return parse_json(raw)
 
     except Exception as e:
-        print("❌ GROQ ERROR:", e)
+        print(" GROQ ERROR:", e)
         return None
 
 
@@ -93,24 +93,25 @@ def parse_json(raw):
 
         data = json.loads(raw)
 
-        # strict validation (VERY IMPORTANT for frontend stability)
+        # validation 
         if (
             isinstance(data, dict)
             and "question" in data
             and isinstance(data.get("options"), list)
             and len(data["options"]) == 4
             and "correct_answer" in data
+            and data["correct_answer"] in data["options"]
             and "hint" in data
         ):
             return data
 
     except Exception as e:
-        print("❌ JSON PARSE ERROR:", e)
+        print(" JSON PARSE ERROR:", e)
 
     return None
 
 
-# ================= STORE =================
+#  STORE 
 def store_question(data, difficulty, concept):
     conn = connect_db()
     cur = conn.cursor()
@@ -139,7 +140,7 @@ def store_question(data, difficulty, concept):
         return row[0] if row else None
 
     except Exception as e:
-        print("❌ DB INSERT ERROR:", e)
+        print(" DB INSERT ERROR:", e)
         conn.rollback()
         return None
 
@@ -148,7 +149,7 @@ def store_question(data, difficulty, concept):
         conn.close()
 
 
-# ================= FETCH HELPERS =================
+#  FETCH HELPERS 
 def normalize_question(row):
     options = row[2]
 
@@ -206,7 +207,7 @@ def get_db_question(difficulty):
     return normalize_question(row) if row else None
 
 
-# ================= MAIN FLOW =================
+#  MAIN FLOW 
 def fetch_question(level, user_id):
     difficulty = get_difficulty(level)
     concepts = get_user_concepts(user_id)
@@ -223,25 +224,25 @@ def fetch_question(level, user_id):
 
                 if qid:
                     qdata["question_id"] = qid
-                    print("🤖 GENERATED QUESTION")
+                    print(" GENERATED QUESTION")
                     return qdata
 
     # 2. CACHE FALLBACK
     cached = get_cached_llm_question(difficulty)
     if cached:
-        print("⚡ CACHE USED")
+        print(" CACHE USED")
         return cached
 
     # 3. DB FALLBACK
     db_q = get_db_question(difficulty)
     if db_q:
-        print("📦 DB FALLBACK USED")
+        print(" DB FALLBACK USED")
         return db_q
 
     return None
 
 
-# ================= PROGRESS =================
+#  PROGRESS 
 def mark_question_solved(user_id, question_id, score):
     conn = connect_db()
     cur = conn.cursor()
@@ -257,7 +258,7 @@ def mark_question_solved(user_id, question_id, score):
         conn.commit()
 
     except Exception as e:
-        print("❌ PROGRESS ERROR:", e)
+        print(" PROGRESS ERROR:", e)
         conn.rollback()
 
     finally:
