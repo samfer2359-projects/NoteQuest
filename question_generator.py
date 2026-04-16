@@ -40,7 +40,7 @@ def get_user_concepts(user_id):
 
 
 def get_difficulty(level):
-    # safe scaling (you can later improve this)
+    
     return max(1, min(level, 10))
 
 

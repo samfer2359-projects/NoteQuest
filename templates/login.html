@@ -57,6 +57,17 @@
             text-align: center;
             margin-top: 10px;
         }
+
+        .links-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.links-row a {
+    text-decoration: none;
+}
     </style>
 </head>
 
@@ -87,13 +98,16 @@
             <input class="input" id="email" name="email" type="email" placeholder="Email">
 
             <input class="input" id="password" name="password" type="password" placeholder="Password">
-            <a class="link" href="/forgot-password">Forgot Password?</a> <br>
+            
 
             <button class="btn-primary" type="submit">Login</button>
 
         </form>
 
-        <a class="link" href="/signup">Create account</a>
+        <div class="links-row">
+    <a href="/forgot-password">Forgot Password?</a>
+    <a href="/signup">Create account</a>
+</div>
 
     </div>
 

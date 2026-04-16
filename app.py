@@ -142,7 +142,7 @@ def signup():
 
         # 4. weak password warning only 
         if len(password) < 6:
-            flash("⚠️ Weak password, but account will still be created", "warning")
+            flash("Weak password, but account will still be created", "warning")
 
         conn = connect_db()
         cur = conn.cursor()
