@@ -2,7 +2,6 @@ import os
 import re
 import psycopg2
 import yake
-from sklearn.feature_extraction.text import TfidfVectorizer
 from pdfminer.high_level import extract_text as extract_pdf_text
 from docx import Document
 from PIL import Image
@@ -10,12 +9,13 @@ import pytesseract
 from pdf2image import convert_from_path
 
 
-
+# Tesseract & Poppler Config
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 POPPLER_PATH = r"C:\poppler\Library\bin"
 
 
-# DB CONFIG 
+
+# DATABASE CONFIGURATION
 DB_CONFIG = {
     "database": "notequest",
     "user": "postgres",
@@ -29,7 +29,7 @@ def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
 
-# CONSTANTS 
+
 DBMS_KEYWORDS = {
     "sql", "dbms", "database", "normalization", "transaction",
     "acid", "join", "primary key", "foreign key", "index",
@@ -41,7 +41,9 @@ DBMS_KEYWORDS = {
 STOPWORDS = {"the", "is", "and", "of", "in", "to", "a", "for", "on", "with"}
 
 
-#  TEXT CLEANING 
+
+# TEXT CLEANING
+
 def clean_text(text: str) -> str:
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
@@ -54,38 +56,30 @@ def clean_concept(concept: str) -> str:
     return " ".join(words).strip()
 
 
+
 # KEYWORD EXTRACTION 
 def extract_yake_keywords(text: str) -> set:
-    extractor = yake.KeywordExtractor(lan="en", n=3, dedupLim=0.9, top=40)
+    extractor = yake.KeywordExtractor(
+        lan="en",
+        n=3,
+        dedupLim=0.9,
+        top=40
+    )
     return {kw for kw, _ in extractor.extract_keywords(text)}
-
-
-def extract_tfidf_keywords(text: str) -> set:
-    try:
-        vectorizer = TfidfVectorizer(
-            stop_words="english",
-            max_features=40,
-            ngram_range=(1, 3)
-        )
-        matrix = vectorizer.fit_transform([text])
-        return set(vectorizer.get_feature_names_out())
-    except:
-        return set()
 
 
 def is_dbms_related(concept: str) -> bool:
     return any(keyword in concept for keyword in DBMS_KEYWORDS)
 
 
-#  CONCEPT EXTRACTION 
+
+# CONCEPT EXTRACTION
 def extract_concepts_from_text(text: str) -> list:
     concepts = set()
 
     cleaned = clean_text(text)
 
-    keywords = extract_yake_keywords(cleaned).union(
-        extract_tfidf_keywords(cleaned)
-    )
+    keywords = extract_yake_keywords(cleaned)
 
     for kw in keywords:
         kw = clean_concept(kw)
@@ -96,14 +90,15 @@ def extract_concepts_from_text(text: str) -> list:
         if 2 <= len(kw.split()) <= 4 and is_dbms_related(kw):
             concepts.add(kw)
 
-    # fallback: capture uppercase words (DBMS, SQL, etc.)
+    # Fallback: capture uppercase words like DBMS, SQL
     uppercase = re.findall(r'\b[A-Z][A-Z0-9]{2,}\b', text)
     concepts.update(uppercase)
 
     return list(concepts)
 
 
-#  FILE TEXT EXTRACTION 
+
+# FILE TEXT EXTRACTION
 def extract_text_from_file(file_path: str) -> str:
     ext = file_path.lower().split('.')[-1]
 
@@ -115,16 +110,16 @@ def extract_text_from_file(file_path: str) -> str:
     # DOCX
     elif ext == "docx":
         doc = Document(file_path)
-        return "\n".join([p.text for p in doc.paragraphs])
+        return "\n".join(p.text for p in doc.paragraphs)
 
-    # PDF (TEXT + OCR FALLBACK)
+    # PDF (Text + OCR fallback)
     elif ext == "pdf":
         text = extract_pdf_text(file_path)
 
         if text and text.strip():
             return text
 
-        print(" Using OCR for scanned PDF...")
+        print("Using OCR for scanned PDF...")
         text = ""
         pages = convert_from_path(file_path, poppler_path=POPPLER_PATH)
 
@@ -142,7 +137,9 @@ def extract_text_from_file(file_path: str) -> str:
         raise ValueError(f"Unsupported file type: {ext}")
 
 
-#  STORE CONCEPTS 
+
+# STORE CONCEPTS
+
 def store_concepts(user_id: int, concepts: list):
     if not concepts:
         return
@@ -167,7 +164,8 @@ def store_concepts(user_id: int, concepts: list):
     conn.close()
 
 
-#  MAIN PROCESS 
+
+# MAIN PROCESS
 def process_uploaded_file(user_id: int, file_path: str) -> list:
     if not os.path.exists(file_path):
         raise FileNotFoundError("File not found")
@@ -187,15 +185,17 @@ def process_uploaded_file(user_id: int, file_path: str) -> list:
     return concepts
 
 
-# SAFE PRINT 
+
+# SAFE PRINT
+
 def safe_print(msg):
     try:
         print(msg)
-    except:
+    except Exception:
         print(str(msg).encode("ascii", "ignore").decode())
 
 
-# CLI 
+
 if __name__ == "__main__":
     import sys
 
@@ -212,5 +212,5 @@ if __name__ == "__main__":
         exit(0)
 
     except Exception as e:
-        safe_print(f" Error: {e}")
+        safe_print(f"Error: {e}")
         exit(1)

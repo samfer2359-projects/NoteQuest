@@ -1,0 +1,300 @@
+
+
+## 1. DBMS Basics
+
+### Definition
+
+DBMS is software that allows users to **store, retrieve, and manage data efficiently**.
+
+### Functions
+
+* Data storage
+* Data retrieval
+* Security
+* Backup & recovery
+
+### Advantages
+
+* Reduces redundancy
+* Improves consistency
+* Data sharing
+
+### Disadvantages
+
+* Costly
+* Complex
+
+---
+
+## 2. DBMS Architecture
+
+### Three-Level Architecture
+
+1. External Level (User view)
+2. Conceptual Level (Logical structure)
+3. Internal Level (Physical storage)
+
+### Data Independence
+
+* Logical independence
+* Physical independence
+
+---
+
+## 3. Data Models
+
+### Types
+
+* Hierarchical (Tree)
+* Network (Graph)
+* Relational (Tables) → Most important
+* ER Model
+
+---
+
+## 4. ER Model
+
+### Components
+
+* Entity: Object (Student)
+* Attribute: Property (Name, Age)
+* Relationship: Connection
+
+### Keys
+
+* Primary Key
+* Candidate Key
+
+### Cardinality
+
+* 1:1
+* 1:M
+* M:N
+
+### Important Terms
+
+* Strong Entity
+* Weak Entity
+
+---
+
+## 5. Relational Model
+
+### Terms
+
+* Table = Relation
+* Row = Tuple
+* Column = Attribute
+
+### Keys
+
+* Primary Key
+* Foreign Key
+* Composite Key
+
+---
+
+## 6. Normalization
+
+### Purpose
+
+* Remove redundancy
+* Improve consistency
+
+### Normal Forms
+
+* 1NF: No repeating groups
+* 2NF: No partial dependency
+* 3NF: No transitive dependency
+* BCNF: Stronger 3NF
+
+### Functional Dependency
+
+A → B means B depends on A
+
+---
+
+## 7. SQL (PostgreSQL)
+
+### Types of Commands
+
+#### DDL
+
+* CREATE
+* ALTER
+* DROP
+
+#### DML
+
+* INSERT
+* UPDATE
+* DELETE
+
+#### DQL
+
+* SELECT
+
+#### DCL
+
+* GRANT
+* REVOKE
+
+---
+
+## 8. Basic SQL Commands
+
+### Create Table
+
+```sql id="1v9h8a"
+CREATE TABLE student (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50),
+    age INT
+);
+```
+
+### Insert
+
+```sql id="6l6lq2"
+INSERT INTO student VALUES (1, 'Amit', 20);
+```
+
+### Select
+
+```sql id="z9b7oz"
+SELECT * FROM student;
+```
+
+---
+
+## 9. SQL Clauses
+
+### WHERE
+
+```sql id="mt93a7"
+SELECT * FROM student WHERE age > 18;
+```
+
+### ORDER BY
+
+```sql id="cxyc9l"
+SELECT * FROM student ORDER BY age;
+```
+
+### GROUP BY
+
+```sql id="k4a0gq"
+SELECT age, COUNT(*) FROM student GROUP BY age;
+```
+
+---
+
+## 10. Joins
+
+### Types
+
+* INNER JOIN
+* LEFT JOIN
+* RIGHT JOIN
+* FULL JOIN
+
+### Example
+
+```sql id="rd1gva"
+SELECT s.name, c.course
+FROM student s
+INNER JOIN course c
+ON s.id = c.student_id;
+```
+
+---
+
+## 11. Subqueries
+
+Query inside another query.
+
+```sql id="ybb5m9"
+SELECT name FROM student
+WHERE age = (SELECT MAX(age) FROM student);
+```
+
+---
+
+## 12. Views
+
+Virtual table.
+
+```sql id="0dny5o"
+CREATE VIEW student_view AS
+SELECT name FROM student;
+```
+
+---
+
+## 13. Index
+
+### Purpose
+
+* Improve speed
+
+```sql id="qqzxj2"
+CREATE INDEX idx_name ON student(name);
+```
+
+---
+
+## 14. Transactions
+
+### Definition
+
+A group of operations executed together.
+
+### ACID Properties
+
+* Atomicity
+* Consistency
+* Isolation
+* Durability
+
+---
+
+## 15. Concurrency Control
+
+### Problems
+
+* Dirty Read
+* Lost Update
+
+### Solution
+
+* Locking
+
+---
+
+## 16. Triggers
+
+Automatically executed actions.
+
+```sql id="eh3qdr"
+CREATE TRIGGER trg
+AFTER INSERT ON student
+FOR EACH ROW
+EXECUTE FUNCTION func();
+```
+
+---
+
+## 17. Security
+
+* Authentication
+* Authorization
+* Roles
+
+---
+
+## 18. Backup & Recovery
+
+* Backup data
+* Restore after failure
+
+
