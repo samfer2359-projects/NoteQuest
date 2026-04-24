@@ -191,6 +191,10 @@ async function resetGame(){
     playBtn.style.opacity = "0.5";
     playBtn.style.pointerEvents = "none";
 
+    playBtn.innerText = "Start Game";
+    document.querySelector(".stat:nth-child(1) p").innerText = "1";
+    document.querySelector(".stat:nth-child(2) p").innerText = "0";
+
     
     setTimeout(() => {
       msgBox.style.display = "none";
