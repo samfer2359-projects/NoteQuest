@@ -1,122 +1,223 @@
-# NoteQuest — Local Setup Guide
+# NoteQuest
 
-## Prerequisites
-- Python 3.10+
-- PostgreSQL (running locally)
-- Ollama with the `mistral` model
-- Game images (see Step 5)
+NoteQuest is an AI-powered gamified learning platform that helps students convert their study notes into meaningful concepts and automatically generates adaptive MCQ-based quizzes. The system analyzes uploaded documents, extracts key concepts, and uses an LLM to generate personalized questions based on user progress.
+
+The platform provides:
+- Automated concept extraction from notes
+- AI-powered DBMS question generation
+- Score and level tracking system
+- Hint-based learning assistance
 
 ---
 
-## Step 1 — Create the database
+# Features
 
-```bash
-psql -U postgres -f database.sql
+- User Authentication System (Signup/Login/Logout)
+- Upload Study Notes (PDF, DOCX, TXT)
+- Automatic Concept Extraction using NLP
+- AI-Based MCQ Generation using Groq LLM
+- Adaptive Difficulty System (Level 1–10)
+- Score Tracking System
+- Hint-Based Learning Support
+- Question Caching and Database Fallback
+- OCR Support for Scanned Documents
+- PostgreSQL Database Integration
+- Gamified Learning Experience
+
+---
+
+# Tech Stack
+
+## Frontend
+- HTML5
+- CSS3
+- JavaScript
+
+## Backend
+- Python (Flask)
+
+## Database
+- PostgreSQL
+
+## AI / NLP
+- Groq LLM (LLaMA 3.1)
+- YAKE Keyword Extraction
+
+## Document Processing
+- PyPDF / pdfminer.six
+- python-docx
+- Tesseract OCR
+- pdf2image
+
+---
+
+# System Architecture
+
+NoteQuest follows a modular architecture:
+
+1. **User Module**
+   - Authentication and session management
+
+2. **File Processing Module**
+   - Extracts text from uploaded files
+   - Applies OCR if needed
+
+3. **Concept Extraction Module**
+   - Extracts DBMS-related keywords using YAKE
+
+4. **AI Question Generator**
+   - Uses Groq LLM to generate MCQs
+   - Stores generated questions in database
+
+5. **Game Engine**
+   - Handles scoring, levels, hints, and progression
+
+---
+
+
+---
+
+# Database Setup
+
+## 1. Create Database
+
+```sql
+CREATE DATABASE notequest;
+\c notequest;
 ```
 
-This creates the `notequest` database and all tables.
+## 2. Run Schema
 
----
+Execute:
+```
+psql -U postgres -d notequest -f database.sql
+```
 
-## Step 2 — Install Python dependencies
+# Installation and Setup
+## 1. Clone Repository
 
-```bash
+```
+git clone https://github.com/your-username/notequest.git
+cd notequest
+```
+
+## 2. Install Dependencies
+
+```
 pip install -r requirements.txt
-python -m spacy download en_core_web_sm
 ```
 
----
+## 3. Set Environment Variables
+Groq API Key
+Windows:
 
-## Step 3 — Check your DB password
-
-Open `app.py`, `m2.py`, and `question_generator.py`.
-Each file has this block near the top — update to match your local Postgres:
-
-```python
-DB_CONFIG = {
-    "database": "notequest",
-    "user":     "postgres",
-    "password": "root",       # ← change this if your password is different
-    "host":     "localhost",
-    "port":     "5432"
-}
+```
+setx GROQ_API_KEY "your_api_key"
 ```
 
----
+## 4. Install OCR Dependencies
+Tesseract OCR
 
-## Step 4 — Start Ollama
+Download:
+https://github.com/tesseract-ocr/tesseract
 
-```bash
-ollama serve          # starts the Ollama server
-ollama pull mistral   # downloads the model (first time only, ~4 GB)
+Set path in m2.py:
+```
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 ```
 
-Ollama must be running at `http://localhost:11434` for question generation to work.
+Poppler (PDF Processing)
 
----
+Download Poppler and set:
 
-## Step 5 — Add game images
+```
+POPPLER_PATH = r"C:\poppler\Library\bin"
+```
 
-Place these 7 images inside `static/images/`:
+## 5. Run Project
 
-| Filename           | What it looks like               |
-|--------------------|----------------------------------|
-| `stone-block.png`  | Gray stone tile (road)           |
-| `water-block.png`  | Blue water tile (top row)        |
-| `grass-block.png`  | Green grass tile (bottom rows)   |
-| `enemy-bug.png`    | The bug enemy character          |
-| `char-boy.png`     | Your player character            |
-| `Star.png`         | Star decoration                  |
-| `Gem Orange.png`   | Orange gem collectible           |
-
-These are the standard Udacity Frogger assets — they're freely available online.
-Search for "Udacity frontend nanodegree frogger assets" to find them.
-
----
-
-## Step 6 — Run the app
-
-```bash
+```
 python app.py
 ```
 
-Open your browser at: **http://localhost:8000**
+Open in browser:
+http://localhost:8000
 
----
+# How It Works
+## 1. Upload Notes
+- User uploads PDF/DOCX/TXT
+- System extracts text
+- Concepts are extracted using NLP
+## 2. Concept Processing
+- YAKE extracts keywords
+- DBMS-related concepts are filtered
+- Stored in PostgreSQL per user
+## 3. Question Generation
+- Concepts are sent to Groq LLM
+- MCQs are generated dynamically
+- Questions stored in database
+## 4. Game Flow
+- User answers MCQs
+- Correct answer → Score increases + Level up
+- Wrong answer → Hint provided
+- Progress saved in DB
 
-## Gameplay
+# Scoring System
+- Correct Answer: +10 points
+- Level Progression: +1 level per correct answer
+- Maximum Level: 10
+- Progress stored in PostgreSQL
 
-1. Sign up and log in
-2. Upload a `.txt`, `.docx`, or `.pdf` file from your DBMS notes on the Dashboard
-3. Click **Play Now** to start the Frogger game
-4. Use **arrow keys** to move your character
-5. Avoid the bug enemies (you have 3 lives)
-6. Collect the orange gem to trigger a quiz question
-7. Answer correctly to earn points and advance levels
 
----
+# Website Images
 
-## Project Structure
+## Welcome Page
+![Welcome Page](static/ui/welcome.png)
 
-```
-notequest/
-├── app.py                  ← Flask routes & auth
-├── m2.py                   ← NLP concept extraction
-├── question_generator.py   ← Ollama/Mistral AI questions
-├── database.sql            ← PostgreSQL schema
-├── requirements.txt
-├── templates/
-│   ├── welcome.html
-│   ├── login.html
-│   ├── signup.html
-│   ├── dashboard.html
-│   └── index.html          ← Frogger game page
-├── static/
-│   ├── css/style.css       ← Game page styles
-│   ├── js/
-│   │   ├── resources.js    ← Image loader
-│   │   ├── app.js          ← Game entities & quiz logic
-│   │   └── engine.js       ← Game loop & collision
-│   └── images/             ← Place your 7 game images here
-└── uploads/                ← Auto-created for note uploads
-```
+## Signup
+![Signup Page](static/ui/s1.png)
+### Invalid Inputs 
+![Signup Page](static/ui/s2.png)
+### Valid Inputs 
+![Signup Page](static/ui/s3.png)
+
+## Login
+![Login Page](static/ui/l1.png)
+### Invalid Inputs 
+![Login Page](static/ui/l2.png)
+### Valid Inputs 
+![Login Page](static/ui/l3.png)
+
+## Forgot Password
+![Forgot Password Page](static/ui/r1.png)
+### Invalid Inputs 
+![Forgot Password Page](static/ui/r2.png)
+### Valid Inputs 
+![Forgot Password Page](static/ui/r3.png)
+
+# Dashboard
+![Dashboard](static/ui/d1.png)
+
+## File upload
+![File Upload](static/ui/d2.png)
+
+# Game Interface
+![Game Interface](static/ui/g1.png)
+
+## MCQ
+![Game Interface](static/ui/g2.png)
+
+## MCQ (correct answer)
+![Game Interface](static/ui/g3.png)
+
+## MCQ (Wrong Answer)
+![Game Interface](static/ui/g4.png)
+
+## Game Over
+![Game Interface](static/ui/g5.png)
+
+
+# Team Members
+- Esha Gadekar 
+- Hussain Esmaeili
+- Samantha Fernandes 
