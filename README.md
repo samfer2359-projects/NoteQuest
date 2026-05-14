@@ -224,6 +224,8 @@ http://localhost:8000
 - Hussain Esmaeili
 - Samantha Fernandes 
 
+---
+
 ## Project Status
 
 This project is currently configured for local development.  
