@@ -10,6 +10,56 @@ The platform provides:
 
 ---
 
+
+# Website Images
+
+## Welcome Page
+![Welcome Page](static/ui/welcome.png)
+
+## Signup
+![Signup Page](static/ui/s1.png)
+### Invalid Inputs 
+![Signup Page](static/ui/s2.png)
+### Valid Inputs 
+![Signup Page](static/ui/s3.png)
+
+## Login
+![Login Page](static/ui/l1.png)
+### Invalid Inputs 
+![Login Page](static/ui/l2.png)
+### Valid Inputs 
+![Login Page](static/ui/l3.png)
+
+## Forgot Password
+![Forgot Password Page](static/ui/r1.png)
+### Invalid Inputs 
+![Forgot Password Page](static/ui/r2.png)
+### Valid Inputs 
+![Forgot Password Page](static/ui/r3.png)
+
+# Dashboard
+![Dashboard](static/ui/d1.png)
+
+## File upload
+![File Upload](static/ui/d2.png)
+
+# Game Interface
+![Game Interface](static/ui/g1.png)
+
+## MCQ
+![Game Interface](static/ui/g2.png)
+
+## MCQ (correct answer)
+![Game Interface](static/ui/g3.png)
+
+## MCQ (Wrong Answer)
+![Game Interface](static/ui/g4.png)
+
+## Game Over
+![Game Interface](static/ui/g5.png)
+
+---
+
 # Features
 
 - User Authentication System (Signup/Login/Logout)
@@ -71,9 +121,6 @@ NoteQuest follows a modular architecture:
 
 5. **Game Engine**
    - Handles scoring, levels, hints, and progression
-
----
-
 
 ---
 
@@ -143,6 +190,8 @@ python app.py
 Open in browser:
 http://localhost:8000
 
+---
+
 # How It Works
 ## 1. Upload Notes
 - User uploads PDF/DOCX/TXT
@@ -168,56 +217,14 @@ http://localhost:8000
 - Maximum Level: 10
 - Progress stored in PostgreSQL
 
-
-# Website Images
-
-## Welcome Page
-![Welcome Page](static/ui/welcome.png)
-
-## Signup
-![Signup Page](static/ui/s1.png)
-### Invalid Inputs 
-![Signup Page](static/ui/s2.png)
-### Valid Inputs 
-![Signup Page](static/ui/s3.png)
-
-## Login
-![Login Page](static/ui/l1.png)
-### Invalid Inputs 
-![Login Page](static/ui/l2.png)
-### Valid Inputs 
-![Login Page](static/ui/l3.png)
-
-## Forgot Password
-![Forgot Password Page](static/ui/r1.png)
-### Invalid Inputs 
-![Forgot Password Page](static/ui/r2.png)
-### Valid Inputs 
-![Forgot Password Page](static/ui/r3.png)
-
-# Dashboard
-![Dashboard](static/ui/d1.png)
-
-## File upload
-![File Upload](static/ui/d2.png)
-
-# Game Interface
-![Game Interface](static/ui/g1.png)
-
-## MCQ
-![Game Interface](static/ui/g2.png)
-
-## MCQ (correct answer)
-![Game Interface](static/ui/g3.png)
-
-## MCQ (Wrong Answer)
-![Game Interface](static/ui/g4.png)
-
-## Game Over
-![Game Interface](static/ui/g5.png)
-
+---
 
 # Team Members
-- Esha Gadekar 
+- Esha Gadekar
 - Hussain Esmaeili
 - Samantha Fernandes 
+
+## Project Status
+
+This project is currently configured for local development.  
+A production deployment version is planned as part of future improvements.
