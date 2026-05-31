@@ -8,6 +8,8 @@ The platform provides:
 - Score and level tracking system
 - Hint-based learning assistance
 
+All challenges and lessons learned are documented in `/docs/lessons-learned.md`.
+
 ---
 
 
